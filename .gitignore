@@ -130,6 +130,3 @@ dmypy.json
 
 downloads/
 
-data/requirements.txt
-data/downloader.py
-data/1.ipynb
