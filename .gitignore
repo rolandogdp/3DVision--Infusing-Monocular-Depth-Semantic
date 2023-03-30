@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+downloads/
+
+data/requirements.txt
+data/downloader.py
+data/1.ipynb
