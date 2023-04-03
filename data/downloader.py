@@ -546,7 +546,9 @@ def download_files_me(url_list,max_file_size_GB,download_path="download/", max_f
                 depth_file_name = f"{ai_name}/images/scene_cam_{cam}_geometry_hdf5/frame.{frame}.depth_meters.hdf5"
                 segmentation_file_name = f"{ai_name}/images/scene_cam_{cam}_geometry_hdf5/frame.{frame}.semantic.hdf5"
                 files = [rgb_file_name, depth_file_name, segmentation_file_name]   
-                image_files_list.append(files); 
+                abs_dl_path = os.path.abspath(download_path)
+                image_files_list.append( [abs_dl_path+rgb_file_name, abs_dl_path+depth_file_name, abs_dl_path+segmentation_file_name]   ); 
+                
                 for file_name in files: 
                     try:
                         res = z.extract(file_name, download_path)           
