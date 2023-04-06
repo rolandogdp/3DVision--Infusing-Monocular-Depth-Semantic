@@ -1,10 +1,12 @@
 import pandas as pd
 import h5py
 import numpy as np
+from PIL import Image
 
 
 def tonemapping_single_image(self, rgb_image, render_entity_id):
-    assert render_entity_id.any(0) #all(render_entity_id != 0)
+    print(np.all(render_entity_id != 0))
+    assert np.all(render_entity_id != 0) #all(render_entity_id != 0)
 
     valid_mask = render_entity_id != -1
 
@@ -55,11 +57,19 @@ def tonemapping(self, csv_file="downloads/image_files.csv"):
 
         toned_image = tonemapping_single_image(self, rgb_color, render_entity_id)
 
-        output_file_name = rgb_color.replace(".color.hdf5", "tonemap.jpg")
+        output_file_name = rgb_image_name.replace("color.hdf5", "tonemap.jpg")
 
         print("Saving output file: " + output_file_name)
 
-        np.imsave(output_file_name, np.clip(toned_image, 0, 1))
+        #convert to rgb
+        max_values = np.expand_dims(toned_image.max(axis=(0,1)), (0,1));
+        toned_image = toned_image/max_values*255;
+
+        print(toned_image.max())
+        print(toned_image.min())
+        rgb_image_toned = Image.fromarray(toned_image.astype(np.uint8))
+        rgb_image_toned.save(output_file_name)
+
 
 
 class ToneMap:
