@@ -6,8 +6,6 @@ from PIL import Image
 import random
 from demo_transform import *
 
-
-
 class depthDataset(Dataset):
     def __init__(self, filename, transform=None):
         self.frame = filename
@@ -23,7 +21,6 @@ class depthDataset(Dataset):
 
     def __len__(self):
         return int(1)
-     
 
 
 def readNyu2(filename):

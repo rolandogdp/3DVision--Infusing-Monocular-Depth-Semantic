@@ -6,6 +6,8 @@ from PIL import Image
 import random
 from nyu_transform import *
 import h5py
+from ../../../data/convert_distance_to_depth import *
+
 
 def remap_data(np_array,wanted_max=255):
     return (np_array* wanted_max/np_array.max(0).max(0).astype(np.uint8) )
@@ -20,23 +22,19 @@ class depthDataset(Dataset):
         
 
     def __getitem__(self, idx):
-        image_name = self.frame.ix[idx, 0]
+        image_name = self.frame.ix[idx, 4]
         depth_name = self.frame.ix[idx, 1]
         # Read file
         if ".hdf5" in image_name:
             image_h5py = h5py.File(image_name, "r")["dataset"][()]
             depth_h5py = h5py.File(depth_name, "r")["dataset"][()]
-            #Image.fromarray(remap_data(rgbdata,255))
-            image = Image.fromarray(remap_data(image_h5py))
-            depth = Image.fromarray(remap_data(depth_h5py ))
+            image = Image.fromarray(remap_data(image_h5py,255))
+            depth = Image.fromarray()
         else:
-            image = Image.open(image_name)
-            depth = Image.open(depth_name)
+            image = Image.open(image_name, "r")
+            depth = Image.open(depth_name, "r")
+            depth = Image.fromarray(convert_distance_to_depth(depth))
         
-        
-        # 
-        
-
         sample = {'image': image, 'depth': depth}
 
         if self.transform:
@@ -57,8 +55,8 @@ def getTrainingData(batch_size=64):
             [-0.5836, -0.6948,  0.4203],
         ])
     }
-    __imagenet_stats = {'mean': [0.485, 0.456, 0.406],
-                        'std': [0.229, 0.224, 0.225]}
+
+    mean, std = get_image_stats(csv_file="../../data/downloads/image_files.csv")
 
     transformed_training = depthDataset(csv_file='../../data/downloads/image_files.csv',
                                         transform=transforms.Compose([
@@ -74,11 +72,29 @@ def getTrainingData(batch_size=64):
                                                 contrast=0.4,
                                                 saturation=0.4,
                                             ),
-                                            Normalize(__imagenet_stats['mean'],
-                                                      __imagenet_stats['std'])
+                                            Normalize(mean,
+                                                      std)
                                         ]))
 
     dataloader_training = DataLoader(transformed_training, batch_size,
                                      shuffle=True, num_workers=4, pin_memory=False)
 
     return dataloader_training
+
+def getTestingData(batch_size=64):
+
+    mean, std = get_image_stats(csv_file="../../data/downloads/image_files.csv")
+    # scale = random.uniform(1, 1.5)
+    transformed_testing = depthDataset(csv_file="../../data/downloads/image_files.csv",
+                                       transform=transforms.Compose([
+                                           Scale(240),
+                                           CenterCrop([304, 228], [304, 228]),
+                                           ToTensor(is_test=True),
+                                           Normalize(mean,
+                                                     std)
+                                       ]))
+
+    dataloader_testing = DataLoader(transformed_testing, batch_size,
+                                    shuffle=False, num_workers=0, pin_memory=False)
+
+    return dataloader_testing

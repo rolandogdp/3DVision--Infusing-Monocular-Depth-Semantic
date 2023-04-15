@@ -196,6 +196,8 @@ class ToTensor(object):
             img = torch.from_numpy(np.array(pic, np.int32, copy=False))
         elif pic.mode == 'I;16':
             img = torch.from_numpy(np.array(pic, np.int16, copy=False))
+        elif pic.mode == "F":
+            img = torch.from_numpy(np.array(pic, np.float32, copy=False))
         else:
             img = torch.ByteTensor(
                 torch.ByteStorage.from_buffer(pic.tobytes()))
@@ -347,5 +349,8 @@ class Normalize(object):
 
         # TODO: make efficient
         for t, m, s in zip(tensor, mean, std):
+            print(t.shape)
+            print(m.shape)
+            print(s.shape)
             t.sub_(m).div_(s)
         return tensor

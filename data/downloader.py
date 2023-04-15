@@ -530,7 +530,8 @@ def download_files_me(url_list,max_file_size_GB,download_path="downloads/", max_
     # Maybe todo, return a list of the files path/names, or a csv, for easier loading afterwards?
     
     #create csv files
-    image_files_list = []; 
+    image_files_list = [];
+    abs_dl_path = os.path.abspath(download_path) + "/"
     
     downloaded_size = 0
     max_file_size_bytes = max_file_size_GB * (10**9)
@@ -543,13 +544,15 @@ def download_files_me(url_list,max_file_size_GB,download_path="downloads/", max_
         for frame in list(frames_list)[:max_frames]:
             for cam in cam_list:
                 tone_map_name = f"{ai_name}/images/scene_cam_{cam}_final_preview/frame.{frame}.tonemap.jpg"
+                #depth_file_name = f"{ai_name}/images/scene_cam_{cam}_geometry_preview/frame.{frame}.depth_.jpg"
                 rgb_file_name = f"{ai_name}/images/scene_cam_{cam}_final_hdf5/frame.{frame}.color.hdf5"
                 depth_file_name = f"{ai_name}/images/scene_cam_{cam}_geometry_hdf5/frame.{frame}.depth_meters.hdf5"
                 segmentation_file_name = f"{ai_name}/images/scene_cam_{cam}_geometry_hdf5/frame.{frame}.semantic.hdf5"
                 render_entity_filename = f"{ai_name}/images/scene_cam_{cam}_geometry_hdf5/frame.{frame}.render_entity_id.hdf5"
                 files = [rgb_file_name, depth_file_name, segmentation_file_name, render_entity_filename, tone_map_name]
-                abs_dl_path = os.path.abspath(download_path) + "/"
-                image_files_list.append( [abs_dl_path+rgb_file_name, abs_dl_path+depth_file_name, abs_dl_path+segmentation_file_name, abs_dl_path+render_entity_filename, abs_dl_path + tone_map_name]);
+
+
+                csv_file_line = []
                 
                 for file_name in files: 
                     try:
@@ -557,6 +560,7 @@ def download_files_me(url_list,max_file_size_GB,download_path="downloads/", max_
                         path = os.path.join(download_path, file_name) 
                         downloaded_size+=os.path.getsize(path)
                         print(res)
+                        csv_file_line.append(abs_dl_path + file_name)
 
                         if downloaded_size >= max_file_size_bytes:
 
@@ -565,9 +569,50 @@ def download_files_me(url_list,max_file_size_GB,download_path="downloads/", max_
                             return 1
                     except KeyError:
                         continue
-                    
+                image_files_list.append(csv_file_line);
                     
     with open(os.path.join(download_path,"image_files.csv"), "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["RGB", "Depth", "Segmentation", "Render_Entity", "ToneMapped"])
-        writer.writerows(image_files_list)       
+        writer.writerows(image_files_list)
+
+
+def download_geometry_preview(url_list, max_file_size_GB, download_path="test/", max_frames=10):
+    # Maybe todo, return a list of the files path/names, or a csv, for easier loading afterwards?
+
+    downloaded_size = 0
+    max_file_size_bytes = max_file_size_GB * (10 ** 9)
+    session = requests.session()
+    for url in url_list:
+        f = WebFile(url, session)
+        z = zipfile.ZipFile(f)
+        frames_list, cam_list = get_scenes(z.namelist())
+        ai_name = url[-14:-4]
+        for cam in cam_list:
+            geometry_preview = f"{ai_name}/images/scene_cam_{cam}_geometry_preview/"
+            #TODO: might need to use toned depth images dont know where they are stored though
+            try:
+                res = z.extract(geometry_preview, download_path)
+                path = os.path.join(download_path, geometry_preview)
+                downloaded_size += os.path.getsize(path)
+                print(res)
+
+                if downloaded_size >= max_file_size_bytes:
+                    print(
+                        f"Maximum download size reached: {downloaded_size / (10 ** 9)} / {max_file_size_bytes / (10 ** 9)}")
+
+                    return 1
+            except KeyError:
+                print("An error occured")
+                continue
+
+
+def main():
+    url = URLS[0:2]
+    download_files_me(url, 0.5, download_path = "downloads/")
+
+    #download_geometry_preview([URLS[0]], 0.5, download_path = "test/")
+
+
+if __name__ == '__main__':
+    main()
