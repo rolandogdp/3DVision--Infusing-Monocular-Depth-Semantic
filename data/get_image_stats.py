@@ -14,5 +14,5 @@ def get_dataset_stats(csv_filename):
     dataset_numpy_array = np.stack(dataset_array_list, axis=0)
     mean_over_entire_dataset = dataset_numpy_array.mean(axis=(0,1,2))
     std_over_entire_dataset = dataset_numpy_array.std(axis=(0,1,2))
-    return mean_over_entire_dataset, std_over_entire_dataset;
+    return mean_over_entire_dataset/255, std_over_entire_dataset/255;
 

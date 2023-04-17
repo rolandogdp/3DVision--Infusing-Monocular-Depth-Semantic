@@ -14,7 +14,7 @@ def main():
     model = torch.nn.DataParallel(model) #.cuda()
     model.load_state_dict(torch.load('./pretrained_model/model_senet', map_location=torch.device('cpu')))
 
-    test_loader = loaddata.getTestingData(1, "../../data/downloads/image_files_test.csv")
+    test_loader = loaddata.getTestingData(1, "../../data/downloads/image_file_test.csv")
     test(test_loader, model, 0.25)
 
 def test(test_loader, model, thre):

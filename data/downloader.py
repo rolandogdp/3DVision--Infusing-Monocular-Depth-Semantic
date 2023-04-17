@@ -526,7 +526,7 @@ class WebFile:
 
         return data
 
-def download_files_me(url_list,max_file_size_GB,download_path="downloads/", max_frames=10):
+def download_files_me(url_list,max_file_size_GB,download_path="downloads/", max_frames=-1):
     # Maybe todo, return a list of the files path/names, or a csv, for easier loading afterwards?
     
     #create csv files
@@ -554,28 +554,37 @@ def download_files_me(url_list,max_file_size_GB,download_path="downloads/", max_
 
                 csv_file_line = []
                 
-                for file_name in files: 
-                    try:
-                        res = z.extract(file_name, download_path)           
-                        path = os.path.join(download_path, file_name) 
-                        downloaded_size+=os.path.getsize(path)
-                        print(res)
-                        csv_file_line.append(abs_dl_path + file_name)
+                for file_name in files:
+                    path = os.path.join(download_path, file_name)
+                    if_file_exists = os.path.isfile(path)
+                    if not if_file_exists:
+                        try:
+                            res = z.extract(file_name, download_path)
+                            #downloaded_size+=os.path.getsize(path)
+                            print(res)
+                            csv_file_line.append(abs_dl_path + file_name)
 
-                        if downloaded_size >= max_file_size_bytes:
+                            """
+                            if downloaded_size >= max_file_size_bytes:
 
-                            print(f"Maximum download size reached: {downloaded_size/(10**9)} / {max_file_size_bytes/(10**9)}")
+                                print(f"Maximum download size reached: {downloaded_size/(10**9)} / {max_file_size_bytes/(10**9)}")
 
-                            return 1
-                    except KeyError:
-                        continue
-                image_files_list.append(csv_file_line);
-                    
-    with open(os.path.join(download_path,"image_files.csv"), "w", newline="") as f:
+                                return 1
+                            """
+                        except KeyError:
+                            continue
+                        image_files_list.append(csv_file_line);
+
+    file_exists = os.path.isfile(os.path.join(download_path, "image_files.csv"))
+
+    if not file_exists:
+        f = open(os.path.join(download_path, "image_files.csv"), "w", newline="")
         writer = csv.writer(f)
         writer.writerow(["RGB", "Depth", "Segmentation", "Render_Entity", "ToneMapped"])
-        writer.writerows(image_files_list)
 
+    with open(os.path.join(download_path, "image_files.csv"), "a", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerows(image_files_list)
 
 def download_geometry_preview(url_list, max_file_size_GB, download_path="test/", max_frames=10):
     # Maybe todo, return a list of the files path/names, or a csv, for easier loading afterwards?
@@ -597,22 +606,23 @@ def download_geometry_preview(url_list, max_file_size_GB, download_path="test/",
                 downloaded_size += os.path.getsize(path)
                 print(res)
 
+                """
                 if downloaded_size >= max_file_size_bytes:
                     print(
                         f"Maximum download size reached: {downloaded_size / (10 ** 9)} / {max_file_size_bytes / (10 ** 9)}")
 
                     return 1
+                """
             except KeyError:
                 print("An error occured")
                 continue
 
 
 def main():
-    url = URLS[0:2]
-    download_files_me(url, 0.5, download_path = "downloads/")
+    url = URLS[0:5]
+    download_files_me(url, 1, download_path = "downloads/", max_frames=50)
 
     #download_geometry_preview([URLS[0]], 0.5, download_path = "test/")
-
 
 if __name__ == '__main__':
     main()
