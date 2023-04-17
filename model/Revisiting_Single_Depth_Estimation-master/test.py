@@ -14,7 +14,7 @@ def main():
     model = torch.nn.DataParallel(model) #.cuda()
     model.load_state_dict(torch.load('./pretrained_model/model_senet', map_location=torch.device('cpu')))
 
-    test_loader = loaddata.getTestingData(1, "../../data/downloads/image_file_test.csv")
+    test_loader = loaddata.getTestingData(1, "../../data/downloads/image_files.csv")
     test(test_loader, model, 0.25)
 
 def test(test_loader, model, thre):
@@ -57,11 +57,11 @@ def test(test_loader, model, thre):
         nvalid = np.sum(torch.eq(edge1_valid, edge2_valid).float().data.cpu().numpy())
         A = nvalid / (depth.size(2)*depth.size(3))
 
-        nvalid2 = np.sum(((edge1_valid + edge2_valid) ==2).float().data.cpu().numpy())
-        P = nvalid2 / (np.sum(edge2_valid.data.cpu().numpy()))
-        R = nvalid2 / (np.sum(edge1_valid.data.cpu().numpy()))
+        nvalid2 = np.sum(((edge1_valid + edge2_valid) ==2).float().data.cpu().numpy()) #intersection
+        P = 0.0 if nvalid2 == 0 else nvalid2/(np.sum(edge2_valid.data.cpu().numpy()))
+        R = 0.0 if nvalid2 == 0 else nvalid2/(np.sum(edge1_valid.data.cpu().numpy()))
 
-        F = (2 * P * R) / (P + R)
+        F = (2 * P * R) / (P + R) #precision and recall?
 
         Ae += A
         Pe += P
@@ -105,7 +105,6 @@ def edge_detection(depth):
     edge_sobel = torch.sqrt(edge_sobel)
 
     return edge_sobel
-
 
 if __name__ == '__main__':
     main()
