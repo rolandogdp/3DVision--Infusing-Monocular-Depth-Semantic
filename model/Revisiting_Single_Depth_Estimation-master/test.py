@@ -4,14 +4,19 @@ import torch.nn as nn
 import torch.nn.parallel
 import sys
 import os
-module_path =  os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
+this_path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
+module_path =  this_path+"/../../"
+os.chdir(this_path)
 if module_path not in sys.path:
-    sys.path.append(module_path+"/../../")
+    sys.path.append(module_path)
+# print("HERE1:",sys.path)
 from models import modules, net, resnet, densenet, senet
 import loaddata
 import util
 import numpy as np
 import sobel
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def main():
     model = define_model(is_resnet=False, is_densenet=False, is_senet=True)
@@ -21,7 +26,7 @@ def main():
         model = torch.nn.DataParallel(model)
 
     if(torch.cuda.is_available()):
-        model.load_state_dict(torch.load('./pretrained_model/model_senet', map_location=torch.device('cuda')))
+        model.load_state_dict(torch.load('./pretrained_model/model_senet', map_location=device))
     else:
         model.load_state_dict(torch.load('./pretrained_model/model_senet', map_location=torch.device('cpu')))
 
@@ -45,7 +50,7 @@ def test(test_loader, model, thre):
         image, depth = sample_batched['image'], sample_batched['depth']
 
         if(torch.cuda.is_available()):
-            depth = depth.cuda(nonblocking=True) #async=True
+            depth = depth.cuda(non_blocking=True) #
             image = image.cuda()
 
         image = torch.autograd.Variable(image, volatile=True)
@@ -109,7 +114,7 @@ def define_model(is_resnet, is_densenet, is_senet):
    
 
 def edge_detection(depth):
-    get_edge = sobel.Sobel() #.cuda()
+    get_edge = sobel.Sobel().to(device) #.cuda()
 
     edge_xy = get_edge(depth)
     edge_sobel = torch.pow(edge_xy[:, 0, :, :], 2) + \
