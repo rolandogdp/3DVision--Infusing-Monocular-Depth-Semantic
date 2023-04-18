@@ -545,11 +545,11 @@ def download_files_me(url_list,max_file_size_GB,download_path="downloads/", max_
             for cam in cam_list:
                 tone_map_name = f"{ai_name}/images/scene_cam_{cam}_final_preview/frame.{frame}.tonemap.jpg"
                 #depth_file_name = f"{ai_name}/images/scene_cam_{cam}_geometry_preview/frame.{frame}.depth_.jpg"
-                rgb_file_name = f"{ai_name}/images/scene_cam_{cam}_final_hdf5/frame.{frame}.color.hdf5"
+                #rgb_file_name = f"{ai_name}/images/scene_cam_{cam}_final_hdf5/frame.{frame}.color.hdf5"
                 depth_file_name = f"{ai_name}/images/scene_cam_{cam}_geometry_hdf5/frame.{frame}.depth_meters.hdf5"
                 segmentation_file_name = f"{ai_name}/images/scene_cam_{cam}_geometry_hdf5/frame.{frame}.semantic.hdf5"
-                render_entity_filename = f"{ai_name}/images/scene_cam_{cam}_geometry_hdf5/frame.{frame}.render_entity_id.hdf5"
-                files = [rgb_file_name, depth_file_name, segmentation_file_name, render_entity_filename, tone_map_name]
+                #render_entity_filename = f"{ai_name}/images/scene_cam_{cam}_geometry_hdf5/frame.{frame}.render_entity_id.hdf5"
+                files = [depth_file_name, segmentation_file_name, tone_map_name]
 
 
                 csv_file_line = []
@@ -580,7 +580,7 @@ def download_files_me(url_list,max_file_size_GB,download_path="downloads/", max_
     if not file_exists:
         f = open(os.path.join(download_path, "image_files.csv"), "w", newline="")
         writer = csv.writer(f)
-        writer.writerow(["RGB", "Depth", "Segmentation", "Render_Entity", "ToneMapped"])
+        writer.writerow(["Depth", "Segmentation", "ToneMapped"])
 
     with open(os.path.join(download_path, "image_files.csv"), "a", newline="") as f:
         writer = csv.writer(f)

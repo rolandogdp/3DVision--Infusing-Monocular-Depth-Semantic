@@ -2,7 +2,11 @@ import argparse
 import torch
 import torch.nn as nn
 import torch.nn.parallel
-
+import sys
+import os
+module_path = os.path.abspath(os.path.join('..'))
+if module_path not in sys.path:
+    sys.path.append(module_path+"/../")
 from models import modules, net, resnet, densenet, senet
 import loaddata
 import util
@@ -15,7 +19,11 @@ def main():
         model = torch.nn.DataParallel(model).cuda()
     else:
         model = torch.nn.DataParallel(model)
-    model.load_state_dict(torch.load('./pretrained_model/model_senet', map_location=torch.device('cpu')))
+
+    if(torch.cuda.is_available()):
+        model.load_state_dict(torch.load('./pretrained_model/model_senet', map_location=torch.device('gpu')))
+    else:
+        model.load_state_dict(torch.load('./pretrained_model/model_senet', map_location=torch.device('gpu')))
 
     test_loader = loaddata.getTestingData(1, "../../data/downloads/image_file_test.csv")
     test(test_loader, model, 0.25)
