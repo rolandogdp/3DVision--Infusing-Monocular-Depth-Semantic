@@ -4,10 +4,10 @@ import numpy as np
 from PIL import Image
 
 def get_dataset_stats(csv_filename):
-    files = pd.read_csv(csv_filename, header=None, skiprows=[0])
+    files = pd.read_csv(csv_filename)
     dataset_array_list = []
-    for index, file in files.iterrows():
-        image_name = file[4]
+    for file in files["ToneMapped"]:
+        image_name = file
         image = np.array(Image.open(image_name, "r"))
         dataset_array_list.append(image)
 
