@@ -21,11 +21,11 @@ def main():
         model = torch.nn.DataParallel(model)
 
     if(torch.cuda.is_available()):
-        model.load_state_dict(torch.load('./pretrained_model/model_senet', map_location=torch.device('gpu')))
+        model.load_state_dict(torch.load('./pretrained_model/model_senet', map_location=torch.device('cuda')))
     else:
-        model.load_state_dict(torch.load('./pretrained_model/model_senet', map_location=torch.device('gpu')))
+        model.load_state_dict(torch.load('./pretrained_model/model_senet', map_location=torch.device('cuda')))
 
-    test_loader = loaddata.getTestingData(1, "../../data/downloads/image_file_test.csv")
+    test_loader = loaddata.getTestingData(1, "../../data/downloads/image_files.csv")
     test(test_loader, model, 0.25)
 
 def test(test_loader, model, thre):
