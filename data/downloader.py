@@ -541,39 +541,43 @@ def download_files_me(url_list,max_file_size_GB,download_path="downloads/", max_
         z = zipfile.ZipFile(f)
         frames_list,cam_list = get_scenes(z.namelist())
         ai_name = url[-14:-4]
-        for frame in list(frames_list)[:max_frames]:
-            for cam in cam_list:
-                tone_map_name = f"{ai_name}/images/scene_cam_{cam}_final_preview/frame.{frame}.tonemap.jpg"
-                #depth_file_name = f"{ai_name}/images/scene_cam_{cam}_geometry_preview/frame.{frame}.depth_.jpg"
-                #rgb_file_name = f"{ai_name}/images/scene_cam_{cam}_final_hdf5/frame.{frame}.color.hdf5"
-                depth_file_name = f"{ai_name}/images/scene_cam_{cam}_geometry_hdf5/frame.{frame}.depth_meters.hdf5"
-                segmentation_file_name = f"{ai_name}/images/scene_cam_{cam}_geometry_hdf5/frame.{frame}.semantic.hdf5"
-                #render_entity_filename = f"{ai_name}/images/scene_cam_{cam}_geometry_hdf5/frame.{frame}.render_entity_id.hdf5"
-                files = [depth_file_name, segmentation_file_name, tone_map_name]
+        try:
+            for frame in list(frames_list)[:max_frames]:
+            
+                for cam in cam_list:
+                    tone_map_name = f"{ai_name}/images/scene_cam_{cam}_final_preview/frame.{frame}.tonemap.jpg"
+                    #depth_file_name = f"{ai_name}/images/scene_cam_{cam}_geometry_preview/frame.{frame}.depth_.jpg"
+                    #rgb_file_name = f"{ai_name}/images/scene_cam_{cam}_final_hdf5/frame.{frame}.color.hdf5"
+                    depth_file_name = f"{ai_name}/images/scene_cam_{cam}_geometry_hdf5/frame.{frame}.depth_meters.hdf5"
+                    segmentation_file_name = f"{ai_name}/images/scene_cam_{cam}_geometry_hdf5/frame.{frame}.semantic.hdf5"
+                    #render_entity_filename = f"{ai_name}/images/scene_cam_{cam}_geometry_hdf5/frame.{frame}.render_entity_id.hdf5"
+                    files = [depth_file_name, segmentation_file_name, tone_map_name]
 
 
-                csv_file_line = []
-                
-                for file_name in files:
-                    path = os.path.join(download_path, file_name)
-                    if_file_exists = os.path.isfile(path)
-                    if not if_file_exists:
-                        try:
-                            res = z.extract(file_name, download_path)
-                            #downloaded_size+=os.path.getsize(path)
-                            print(res)
-                            csv_file_line.append(abs_dl_path + file_name)
+                    csv_file_line = []
+                    
+                    for file_name in files:
+                        path = os.path.join(download_path, file_name)
+                        if_file_exists = os.path.isfile(path)
+                        if not if_file_exists:
+                            try:
+                                res = z.extract(file_name, download_path)
+                                #downloaded_size+=os.path.getsize(path)
+                                print(res)
+                                csv_file_line.append(abs_dl_path + file_name)
 
-                            """
-                            if downloaded_size >= max_file_size_bytes:
+                                """
+                                if downloaded_size >= max_file_size_bytes:
 
-                                print(f"Maximum download size reached: {downloaded_size/(10**9)} / {max_file_size_bytes/(10**9)}")
+                                    print(f"Maximum download size reached: {downloaded_size/(10**9)} / {max_file_size_bytes/(10**9)}")
 
-                                return 1
-                            """
-                        except KeyError:
-                            continue
-                        image_files_list.append(csv_file_line);
+                                    return 1
+                                """
+                            except KeyError:
+                                continue
+                            image_files_list.append(csv_file_line);
+        except KeyboardInterrupt:
+            break;
 
     file_exists = os.path.isfile(os.path.join(download_path, "image_files.csv"))
 

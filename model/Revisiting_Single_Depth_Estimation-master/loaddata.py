@@ -4,6 +4,12 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
 from PIL import Image
 import random
+import os
+import sys
+
+module_path =  os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
+if module_path not in sys.path:
+    sys.path.append(module_path+"/../../")
 from data.get_image_stats import *
 from data.convert_distance_to_depth import *
 from nyu_transform import *

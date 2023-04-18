@@ -4,9 +4,9 @@ import torch.nn as nn
 import torch.nn.parallel
 import sys
 import os
-module_path = os.path.abspath(os.path.join('..'))
+module_path =  os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 if module_path not in sys.path:
-    sys.path.append(module_path+"/../")
+    sys.path.append(module_path+"/../../")
 from models import modules, net, resnet, densenet, senet
 import loaddata
 import util
@@ -23,7 +23,7 @@ def main():
     if(torch.cuda.is_available()):
         model.load_state_dict(torch.load('./pretrained_model/model_senet', map_location=torch.device('cuda')))
     else:
-        model.load_state_dict(torch.load('./pretrained_model/model_senet', map_location=torch.device('cuda')))
+        model.load_state_dict(torch.load('./pretrained_model/model_senet', map_location=torch.device('cpu')))
 
     test_loader = loaddata.getTestingData(1, "../../data/downloads/image_files.csv")
     test(test_loader, model, 0.25)
