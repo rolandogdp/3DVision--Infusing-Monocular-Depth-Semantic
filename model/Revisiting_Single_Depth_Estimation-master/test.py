@@ -17,21 +17,15 @@ import numpy as np
 import sobel
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+# device = torch.device("cpu")
 def main():
     model = define_model(is_resnet=False, is_densenet=False, is_senet=True)
-    if(torch.cuda.is_available()):
-        model = torch.nn.DataParallel(model).cuda()
-    else:
-        model = torch.nn.DataParallel(model)
 
-    if(torch.cuda.is_available()):
-        model.load_state_dict(torch.load('./pretrained_model/model_senet', map_location=device))
-    else:
-        model.load_state_dict(torch.load('./pretrained_model/model_senet', map_location=torch.device('cpu')))
-
+    model = torch.nn.DataParallel(model).to(device)
+    model.load_state_dict(torch.load('./pretrained_model/model_senet', map_location=device))
+    
     test_loader = loaddata.getTestingData(1, "../../data/downloads/image_files.csv")
-    test(test_loader, model, 0.25)
+    test(test_loader, model, 2e-04)
 
 def test(test_loader, model, thre):
     model.eval()
@@ -47,6 +41,7 @@ def test(test_loader, model, thre):
                 'MAE': 0,  'DELTA1': 0, 'DELTA2': 0, 'DELTA3': 0}
 
     for i, sample_batched in enumerate(test_loader):
+        print("test:",i)
         image, depth = sample_batched['image'], sample_batched['depth']
 
         if(torch.cuda.is_available()):
