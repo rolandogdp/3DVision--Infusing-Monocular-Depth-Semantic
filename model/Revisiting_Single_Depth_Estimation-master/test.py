@@ -11,10 +11,13 @@ import sobel
 
 def main():
     model = define_model(is_resnet=False, is_densenet=False, is_senet=True)
-    model = torch.nn.DataParallel(model) #.cuda()
+    if(torch.cuda.is_available()):
+        model = torch.nn.DataParallel(model).cuda()
+    else:
+        model = torch.nn.DataParallel(model)
     model.load_state_dict(torch.load('./pretrained_model/model_senet', map_location=torch.device('cpu')))
 
-    test_loader = loaddata.getTestingData(1, "../../data/downloads/image_files.csv")
+    test_loader = loaddata.getTestingData(1, "../../data/downloads/image_file_test.csv")
     test(test_loader, model, 0.25)
 
 def test(test_loader, model, thre):
@@ -33,8 +36,9 @@ def test(test_loader, model, thre):
     for i, sample_batched in enumerate(test_loader):
         image, depth = sample_batched['image'], sample_batched['depth']
 
-        #depth = depth.cuda(nonblocking=True) #async=True
-        #image = image.cuda()
+        if(torch.cuda.is_available()):
+            depth = depth.cuda(nonblocking=True) #async=True
+            image = image.cuda()
 
         image = torch.autograd.Variable(image, volatile=True)
         depth = torch.autograd.Variable(depth, volatile=True)
@@ -58,8 +62,8 @@ def test(test_loader, model, thre):
         A = nvalid / (depth.size(2)*depth.size(3))
 
         nvalid2 = np.sum(((edge1_valid + edge2_valid) ==2).float().data.cpu().numpy()) #intersection
-        P = 0.0 if nvalid2 == 0 else nvalid2/(np.sum(edge2_valid.data.cpu().numpy()))
-        R = 0.0 if nvalid2 == 0 else nvalid2/(np.sum(edge1_valid.data.cpu().numpy()))
+        P = nvalid2/(np.sum(edge2_valid.data.cpu().numpy()))
+        R = nvalid2/(np.sum(edge1_valid.data.cpu().numpy()))
 
         F = (2 * P * R) / (P + R) #precision and recall?
 
