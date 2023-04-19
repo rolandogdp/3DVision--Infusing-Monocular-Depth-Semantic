@@ -14,7 +14,7 @@ from functools import partial
 
 def split_array_in_number_of_cores(data_list:list, cores_amount:int):
     l = len(data_list)
-    step = l //cores_amount 
+    step = l //cores_amount +1
     for i in range(0,l,step):
         yield data_list[i:i+step]
         
