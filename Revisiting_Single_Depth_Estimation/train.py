@@ -13,7 +13,7 @@ import sobel
 from models import modules, net, resnet, densenet, senet
 
 parser = argparse.ArgumentParser(description='PyTorch DenseNet Training')
-parser.add_argument('--epochs', default=20, type=int,
+parser.add_argument('--epochs', default=1, type=int,
                     help='number of total epochs to run')
 parser.add_argument('--start-epoch', default=0, type=int,
                     help='manual epoch number (useful on restarts)')
@@ -82,7 +82,7 @@ def train(train_loader, model, optimizer, epoch):
     for i, sample_batched in enumerate(train_loader):
         image, depth = sample_batched['image'], sample_batched['depth']
 
-        depth = depth.cuda(async=True)
+        depth = depth.cuda(non_blocking=True)
         image = image.cuda()
         image = torch.autograd.Variable(image)
         depth = torch.autograd.Variable(depth)
@@ -112,8 +112,9 @@ def train(train_loader, model, optimizer, epoch):
         loss_normal = torch.abs(1 - cos(output_normal, depth_normal)).mean()
 
         loss = loss_depth + loss_normal + (loss_dx + loss_dy)
-
-        losses.update(loss.data[0], image.size(0))
+        print('type loss: ', type(loss))
+        print('loss: ', loss)
+        losses.update(loss.item(), image.size(0))
         loss.backward()
         optimizer.step()
 
@@ -152,7 +153,7 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-def save_checkpoint(state, filename='checkpoint.pth.tar'):
+def save_checkpoint(state, filename='checkpointapple.pth.tar'):
     torch.save(state, filename)
 
 

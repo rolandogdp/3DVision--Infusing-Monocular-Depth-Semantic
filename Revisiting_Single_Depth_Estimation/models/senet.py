@@ -11,6 +11,8 @@ import torch.nn as nn
 from torch.utils import model_zoo
 import copy
 import numpy as np
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
 
 __all__ = ['SENet', 'senet154', 'se_resnet50', 'se_resnet101', 'se_resnet152',
            'se_resnext50_32x4d', 'se_resnext101_32x4d']

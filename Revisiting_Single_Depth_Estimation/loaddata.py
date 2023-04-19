@@ -15,8 +15,8 @@ class depthDataset(Dataset):
         self.transform = transform
 
     def __getitem__(self, idx):
-        image_name = self.frame.ix[idx, 0]
-        depth_name = self.frame.ix[idx, 1]
+        image_name = '/content/drive/MyDrive/Depth Estimation/AppleNew/'+self.frame.iloc[idx, 0]
+        depth_name = '/content/drive/MyDrive/Depth Estimation/AppleNew/'+self.frame.iloc[idx, 1]
 
         image = Image.open(image_name)
         depth = Image.open(depth_name)
@@ -44,7 +44,7 @@ def getTrainingData(batch_size=64):
     __imagenet_stats = {'mean': [0.485, 0.456, 0.406],
                         'std': [0.229, 0.224, 0.225]}
 
-    transformed_training = depthDataset(csv_file='./data/nyu2_train.csv',
+    transformed_training = depthDataset(csv_file='/content/drive/MyDrive/Depth Estimation/AppleNew/apple_csv.csv',
                                         transform=transforms.Compose([
                                             Scale(240),
                                             RandomHorizontalFlip(),
