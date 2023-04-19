@@ -10,10 +10,11 @@ import loaddata
 import util
 import numpy as np
 import sobel
+import datetime
 from models import modules, net, resnet, densenet, senet
 
 parser = argparse.ArgumentParser(description='PyTorch DenseNet Training')
-parser.add_argument('--epochs', default=20, type=int,
+parser.add_argument('--epochs', default=1, type=int,
                     help='number of total epochs to run')
 parser.add_argument('--start-epoch', default=0, type=int,
                     help='manual epoch number (useful on restarts)')
@@ -42,9 +43,11 @@ def define_model(is_resnet, is_densenet, is_senet):
    
 
 def main():
+    print("GPU VRAM MAIN:",torch.cuda.mem_get_info())
     global args
     args = parser.parse_args()
     model = define_model(is_resnet=False, is_densenet=False, is_senet=True)
+    print("GPU VRAM model defined:",torch.cuda.mem_get_info())
  
     if torch.cuda.device_count() == 8:
         model = torch.nn.DataParallel(model, device_ids=[0, 1, 2, 3, 4, 5, 6, 7]).cuda()
@@ -55,12 +58,15 @@ def main():
     else:
         model = model.cuda()
         batch_size = 8
+    print("GPU VRAM ifs:",torch.cuda.mem_get_info())
 
     cudnn.benchmark = True
     optimizer = torch.optim.Adam(model.parameters(), args.lr, weight_decay=args.weight_decay)
+    print("GPU VRAM optimizer:",torch.cuda.mem_get_info())
 
     train_loader = loaddata.getTrainingData(batch_size)
-
+    print("BatchSize:",batch_size)
+    print("GPU VRAM 0:",torch.cuda.mem_get_info())
     for epoch in range(args.start_epoch, args.epochs):
         adjust_learning_rate(optimizer, epoch)
         train(train_loader, model, optimizer, epoch)
@@ -69,6 +75,7 @@ def main():
 
 
 def train(train_loader, model, optimizer, epoch):
+    print("GPU VRAM 1:",torch.cuda.mem_get_info())
     criterion = nn.L1Loss()
     batch_time = AverageMeter()
     losses = AverageMeter()
@@ -76,22 +83,28 @@ def train(train_loader, model, optimizer, epoch):
     model.train()
 
     cos = nn.CosineSimilarity(dim=1, eps=0)
+    print("GPU VRAM before Sobel:",torch.cuda.mem_get_info())
     get_gradient = sobel.Sobel().cuda()
+    print("GPU VRAM After Sobel:",torch.cuda.mem_get_info())
 
     end = time.time()
     for i, sample_batched in enumerate(train_loader):
+        print("DOING ITERATION:",i)
+        print("GPU VRAM:",torch.cuda.mem_get_info())
         image, depth = sample_batched['image'], sample_batched['depth']
 
-        depth = depth.cuda(async=True)
+        depth = depth.cuda(non_blocking=True)
         image = image.cuda()
         image = torch.autograd.Variable(image)
         depth = torch.autograd.Variable(depth)
+        print("GPU VRAM after autograd:",torch.cuda.mem_get_info())
 
         ones = torch.ones(depth.size(0), 1, depth.size(2),depth.size(3)).float().cuda()
         ones = torch.autograd.Variable(ones)
         optimizer.zero_grad()
-
+        print("GPU VRAM before model call:",torch.cuda.mem_get_info())
         output = model(image)
+        print("GPU VRAM output:",torch.cuda.mem_get_info())
 
         depth_grad = get_gradient(depth)
         output_grad = get_gradient(output)
@@ -112,8 +125,9 @@ def train(train_loader, model, optimizer, epoch):
         loss_normal = torch.abs(1 - cos(output_normal, depth_normal)).mean()
 
         loss = loss_depth + loss_normal + (loss_dx + loss_dy)
-
-        losses.update(loss.data[0], image.size(0))
+        print('type loss: ', type(loss))
+        print('loss: ', loss)
+        losses.update(loss.item(), image.size(0))
         loss.backward()
         optimizer.step()
 
@@ -152,8 +166,10 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-def save_checkpoint(state, filename='checkpoint.pth.tar'):
-    torch.save(state, filename)
+def save_checkpoint(state, filename='checkpointapple.pth.tar'):
+    now = datetime.now()
+    
+    torch.save(state, filename+str(now.strftime("%m/%d/%Y-%H:%M:%S")))
 
 
 if __name__ == '__main__':

@@ -24,7 +24,7 @@ def main():
     model = torch.nn.DataParallel(model).to(device)
     model.load_state_dict(torch.load('./pretrained_model/model_senet', map_location=device))
     
-    test_loader = loaddata.getTestingData(1, "../../data/downloads/image_file_test.csv")
+    test_loader = loaddata.getTestingData(1, "../../data/downloads/image_file_visualize.csv")
     test(test_loader, model, 2e-04)
 
 def test(test_loader, model, thre):
