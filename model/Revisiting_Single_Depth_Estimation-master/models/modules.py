@@ -10,7 +10,6 @@ from . import senet
 from . import resnet
 from . import densenet
 
-
 class _UpProjection(nn.Sequential):
 
     def __init__(self, num_input_features, num_output_features):
