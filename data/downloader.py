@@ -621,6 +621,19 @@ def download_geometry_preview(url_list, max_file_size_GB, download_path="test/",
                 print("An error occured")
                 continue
 
+"""
+def download_metadata_files(url_list, download_path="metadata/"):
+    metadata_scene = f"{ai_name}/_detail/metadata_scene.csv"
+    path = os.path.join(download_path, metadata_scene)
+    if_file_exists = os.path.isfile(path)
+    if not if_file_exists:
+        try:
+            res = z.extract(metadata_scene, download_path)
+            print(res)
+        except KeyboardInterrupt:
+            break;
+"""
+
 
 def main():
     url = URLS[0:5]

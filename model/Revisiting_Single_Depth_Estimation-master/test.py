@@ -24,7 +24,7 @@ def main():
     model = torch.nn.DataParallel(model).to(device)
     model.load_state_dict(torch.load('./pretrained_model/model_senet', map_location=device))
     
-    test_loader = loaddata.getTestingData(1, "../../data/downloads/image_files.csv")
+    test_loader = loaddata.getTestingData(1, "../../data/downloads/image_file_test.csv")
     test(test_loader, model, 2e-04)
 
 def test(test_loader, model, thre):
@@ -48,11 +48,11 @@ def test(test_loader, model, thre):
             depth = depth.cuda(non_blocking=True) #
             image = image.cuda()
 
-        image = torch.autograd.Variable(image, volatile=True)
-        depth = torch.autograd.Variable(depth, volatile=True)
+        image = torch.autograd.Variable(image, requires_grad=False)
+        depth = torch.autograd.Variable(depth, requires_grad=False)
  
         output = model(image)
-        output = torch.nn.functional.upsample(output, size=[depth.size(2),depth.size(3)], mode='bilinear')
+        output = torch.nn.functional.interpolate(output, size=[depth.size(2),depth.size(3)], mode='bilinear')
 
         depth_edge = edge_detection(depth)
         output_edge = edge_detection(output)

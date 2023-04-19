@@ -11,4 +11,3 @@ def convert_distance_to_depth(np_depth_array):
     npyImageplane = np.concatenate([npyImageplaneX, npyImageplaneY, npyImageplaneZ], 2)
 
     return np_depth_array / np.linalg.norm(npyImageplane, 2, 2) * fltFocal
-

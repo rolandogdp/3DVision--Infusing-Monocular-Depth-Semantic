@@ -36,7 +36,7 @@ class depthDataset(Dataset):
         # Read file
         if ".hdf5" in image_name:
             image_h5py = h5py.File(image_name, "r")["dataset"][()]
-            image = Image.fromarray(remap_data(image_h5py, 255))
+            image = Image.fromarray(image_h5py)
         else:
             image = Image.open(image_name, "r")
         if ".hdf5" in depth_name:
