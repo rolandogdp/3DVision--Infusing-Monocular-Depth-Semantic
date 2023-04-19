@@ -48,11 +48,6 @@ class depthDataset(Dataset):
 
         sample = {'image': image, 'depth': depth}
 
-        #image = Image.open(image_name)
-        #depth = Image.open(depth_name)
-
-        sample = {'image': image, 'depth': depth}
-
         if self.transform:
             sample = self.transform(sample)
 
@@ -77,7 +72,7 @@ def getTrainingData(batch_size=64, filename=".data/nyu2_train.csv"):
                         'std': [0.229, 0.224, 0.225]}
     """
 
-    mean, std = get_dataset_stats(csv_filename=filename)  # TODO: only extracts image stats of particular subset but not of the entire dataset
+    mean, std = get_dataset_stats2(csv_filename=filename)  # TODO: only extracts image stats of particular subset but not of the entire dataset
 
     transformed_training = depthDataset(csv_file=filename,
                                         transform=transforms.Compose([
@@ -111,7 +106,7 @@ def getTestingData(batch_size=64, filename=".data/nyu2_test.csv"):
                         'std': [0.229, 0.224, 0.225]}
     """
 
-    mean, std = get_dataset_stats(csv_filename=filename) #TODO: only extracts image stats of particular subset but not of the entire dataset
+    mean, std = get_dataset_stats2(csv_filename=filename) #TODO: only extracts image stats of particular subset but not of the entire dataset
 
     # scale = random.uniform(1, 1.5)
     transformed_testing = depthDataset(csv_file=filename,
