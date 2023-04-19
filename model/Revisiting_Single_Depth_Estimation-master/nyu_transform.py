@@ -170,9 +170,9 @@ class ToTensor(object):
         # ground truth depth of training samples is stored in 8-bit while test samples are saved in 16 bit
         image = self.to_tensor(image)
         if self.is_test:
-            depth = self.to_tensor(depth).float()/1000
+            depth = self.to_tensor(depth).float() #/1000 TODO: maybe a NYU-Depth thing
         else:            
-            depth = self.to_tensor(depth).float()*10
+            depth = self.to_tensor(depth).float() #*10
         return {'image': image, 'depth': depth}
 
     def to_tensor(self, pic):
@@ -212,7 +212,12 @@ class ToTensor(object):
         # yikes, this transpose takes 80% of the loading time/CPU
         img = img.transpose(0, 1).transpose(0, 2).contiguous()
         if isinstance(img, torch.ByteTensor):
-            return img.float().div(255)
+            print(img.min())
+            print(img.max())
+            img = img.float().div(255)
+            print(img.min())
+            print(img.max())
+            return img #.float().div(255)
         else:
             return img
 
@@ -347,6 +352,14 @@ class Normalize(object):
         """
 
         # TODO: make efficient
+        """
         for t, m, s in zip(tensor, mean, std):
             t.sub_(m).div_(s)
+        """
+
+        for channel in range(0,tensor.shape[0]):
+            tensor[channel,:,:].sub_(mean[channel]).div_(std[channel])
+
+        print(tensor.min())
+        print(tensor.max())
         return tensor

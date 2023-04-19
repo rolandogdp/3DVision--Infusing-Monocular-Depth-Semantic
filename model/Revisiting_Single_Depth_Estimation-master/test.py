@@ -44,6 +44,9 @@ def test(test_loader, model, thre):
         print("test:",i)
         image, depth = sample_batched['image'], sample_batched['depth']
 
+        print(image.min())
+        print(image.max())
+
         if(torch.cuda.is_available()):
             depth = depth.cuda(non_blocking=True) #
             image = image.cuda()
@@ -120,3 +123,6 @@ def edge_detection(depth):
 
 if __name__ == '__main__':
     main()
+
+
+def get_image_stats:

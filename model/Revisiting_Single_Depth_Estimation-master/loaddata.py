@@ -108,6 +108,8 @@ def getTestingData(batch_size=64, filename=".data/nyu2_test.csv"):
 
     mean, std = get_dataset_stats2(csv_filename=filename) #TODO: only extracts image stats of particular subset but not of the entire dataset
 
+    print(mean)
+    print(std)
     # scale = random.uniform(1, 1.5)
     transformed_testing = depthDataset(csv_file=filename,
                                        transform=transforms.Compose([
