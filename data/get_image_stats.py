@@ -27,9 +27,10 @@ def slices_generator(data_list:list, step:int):
 
 def get_partial_sums(filenames:list,total_len:int):
     partial_full_sum, partial_full_squared_sum = np.zeros((3,),dtype=np.float64),np.zeros((3,),dtype=np.float64)
+    absolute_downloads_path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']
     for image_name in filenames:
          
-        image = np.array(Image.open(image_name, "r"),dtype=np.int64)
+        image = np.array(Image.open(os.path.join(absolute_downloads_path,image_name), "r"),dtype=np.int64)
         partial_full_sum += image.mean(axis=(0,1))/total_len
         partial_full_squared_sum  += (np.square(image)).mean(axis=(0,1))/total_len
 
@@ -66,8 +67,9 @@ def get_dataset_stats2(csv_filename):
     mean_over_entire_dataset = 0
     std_over_entire_dataset = 0
     number_of_files = files.shape[0]
+    absolute_downloads_path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']
     for file in files["ToneMapped"]:
-        image = np.array(Image.open(file, "r"),dtype=np.uint16)
+        image = np.array(Image.open(os.path.join(absolute_downloads_path,file), "r"),dtype=np.uint16)
         mean_over_entire_dataset = mean_over_entire_dataset + image.mean(axis=(0,1))/number_of_files
         std_over_entire_dataset = std_over_entire_dataset + (image**2).mean(axis=(0,1))/number_of_files
 

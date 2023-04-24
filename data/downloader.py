@@ -564,7 +564,7 @@ def download_files_me(url_list,max_file_size_GB,download_path="downloads/", max_
                                 res = z.extract(file_name, download_path)
                                 #downloaded_size+=os.path.getsize(path)
                                 print(res)
-                                csv_file_line.append(abs_dl_path + file_name)
+                                csv_file_line.append(file_name)
 
                                 """
                                 if downloaded_size >= max_file_size_bytes:
@@ -637,7 +637,8 @@ def download_metadata_files(url_list, download_path="metadata/"):
 
 def main():
     url = URLS[0:5]
-    download_files_me(url, 1, download_path = "downloads/", max_frames=50)
+    download_path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] #local: downloads/, euler:
+    download_files_me(url, 1, download_path = download_path, max_frames=50)
 
     #download_geometry_preview([URLS[0]], 0.5, download_path = "test/")
 

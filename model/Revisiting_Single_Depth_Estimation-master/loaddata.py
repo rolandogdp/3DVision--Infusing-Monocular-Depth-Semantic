@@ -25,10 +25,11 @@ class depthDataset(Dataset):
     def __init__(self, csv_file, transform=None):
         self.frame = pd.read_csv(csv_file)
         self.transform = transform
+        self.absolute_downloads_path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']
 
     def __getitem__(self, idx):
-        image_name = self.frame["ToneMapped"][idx]
-        depth_name = self.frame["Depth"][idx]
+        image_name = self.absolute_downloads_path + self.frame["ToneMapped"][idx]
+        depth_name = self.absolute_downloads_path + self.frame["Depth"][idx]
         # Read file
         if ".hdf5" in image_name:
             image_h5py = h5py.File(image_name, "r")["dataset"][()]
@@ -53,7 +54,7 @@ class depthDataset(Dataset):
         return len(self.frame)
 
 
-def getTrainingData(batch_size=64, filename="../../data/downloads/images_files.csv"):
+def getTrainingData(batch_size=64, csv_filename="image_files.csv"):
     __imagenet_pca = {
         'eigval': torch.Tensor([0.2175, 0.0188, 0.0045]),
         'eigvec': torch.Tensor([
@@ -62,6 +63,9 @@ def getTrainingData(batch_size=64, filename="../../data/downloads/images_files.c
             [-0.5836, -0.6948,  0.4203],
         ])
     }
+
+    filename = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']  + csv_filename
+
     mean, std = get_dataset_stats2(csv_filename=filename)  # TODO: only extracts image stats of particular subset but not of the entire dataset
 
     transformed_training = depthDataset(csv_file=filename,
@@ -88,13 +92,17 @@ def getTrainingData(batch_size=64, filename="../../data/downloads/images_files.c
     return dataloader_training
 
 
-def getTestingData(batch_size=64, filename="../../data/downloads/images_files.csv"):
+def getTestingData(batch_size=64, csv_filename="images_files.csv"):
 
     """
     image stats for nyu2 dataset
     __imagenet_stats = {'mean': [0.485, 0.456, 0.406],
                         'std': [0.229, 0.224, 0.225]}
     """
+
+    filename = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] + csv_filename
+
+    print(filename)
 
     mean, std = get_dataset_stats(csv_filename=filename) #TODO: only extracts image stats of particular subset but not of the entire dataset
 
