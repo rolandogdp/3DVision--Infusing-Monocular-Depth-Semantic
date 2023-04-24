@@ -66,7 +66,7 @@ def getTrainingData(batch_size=64, csv_filename="image_files.csv"):
 
     filename = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']  + csv_filename
 
-    mean, std = get_dataset_stats2(csv_filename=filename)  # TODO: only extracts image stats of particular subset but not of the entire dataset
+    mean, std = get_dataset_stats(csv_filename=filename)  # TODO: only extracts image stats of particular subset but not of the entire dataset
 
     transformed_training = depthDataset(csv_file=filename,
                                         transform=transforms.Compose([
@@ -87,7 +87,7 @@ def getTrainingData(batch_size=64, csv_filename="image_files.csv"):
                                         ]))
 
     dataloader_training = DataLoader(transformed_training, batch_size,
-                                     shuffle=True, num_workers=4, pin_memory=False)
+                                     shuffle=False, num_workers=4, pin_memory=False)
 
     return dataloader_training
 

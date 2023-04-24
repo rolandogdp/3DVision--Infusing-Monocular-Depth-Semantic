@@ -212,11 +212,7 @@ class ToTensor(object):
         # yikes, this transpose takes 80% of the loading time/CPU
         img = img.transpose(0, 1).transpose(0, 2).contiguous()
         if isinstance(img, torch.ByteTensor):
-            print(img.min())
-            print(img.max())
             img = img.float().div(255)
-            print(img.min())
-            print(img.max())
             return img #.float().div(255)
         else:
             return img
@@ -360,6 +356,4 @@ class Normalize(object):
         for channel in range(0,tensor.shape[0]):
             tensor[channel,:,:].sub_(mean[channel]).div_(std[channel])
 
-        print(tensor.min())
-        print(tensor.max())
         return tensor

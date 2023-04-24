@@ -28,8 +28,8 @@ def slices_generator(data_list:list, step:int):
 def get_partial_sums(filenames:list,total_len:int):
     partial_full_sum, partial_full_squared_sum = np.zeros((3,),dtype=np.float64),np.zeros((3,),dtype=np.float64)
     absolute_downloads_path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']
-    for image_name in filenames:
-         
+    
+    for image_name in filenames:         
         image = np.array(Image.open(os.path.join(absolute_downloads_path,image_name), "r"),dtype=np.int64)
         partial_full_sum += image.mean(axis=(0,1))/total_len
         partial_full_squared_sum  += (np.square(image)).mean(axis=(0,1))/total_len
