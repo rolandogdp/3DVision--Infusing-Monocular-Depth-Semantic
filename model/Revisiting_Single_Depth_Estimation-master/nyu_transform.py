@@ -151,6 +151,8 @@ class CenterCrop(object):
         return image
 
 
+
+
 class ToTensor(object):
     """Convert a ``PIL.Image`` or ``numpy.ndarray`` to tensor.
     Converts a PIL.Image or numpy.ndarray (H x W x C) in the range
@@ -316,6 +318,22 @@ class ColorJitter(RandomOrder):
         if saturation != 0:
             self.transforms.append(Saturation(saturation))
 
+class MaskInvalidData(object):
+    """
+    uses pytorch prototype of mask to ignore all the NaN
+    values in windows and where geometry information
+    is missing
+    """
+    def __init__(self):
+        pass
+
+    def __call__(self, sample):
+        depth = sample["depth"]
+        depth_masked = self.mask(depth)
+        return {"image": sample["image"], "depth": depth_masked}
+
+    def mask(self, tensor):
+        return torch.masked.masked_tensor(tensor, ~tensor.isnan())
 
 class Normalize(object):
     def __init__(self, mean, std):

@@ -543,7 +543,6 @@ def download_files_me(url_list,max_file_size_GB,download_path="downloads/", max_
         ai_name = url[-14:-4]
         try:
             for frame in list(frames_list)[:max_frames]:
-            
                 for cam in cam_list:
                     tone_map_name = f"{ai_name}/images/scene_cam_{cam}_final_preview/frame.{frame}.tonemap.jpg"
                     #depth_file_name = f"{ai_name}/images/scene_cam_{cam}_geometry_preview/frame.{frame}.depth_.jpg"
@@ -553,9 +552,7 @@ def download_files_me(url_list,max_file_size_GB,download_path="downloads/", max_
                     #render_entity_filename = f"{ai_name}/images/scene_cam_{cam}_geometry_hdf5/frame.{frame}.render_entity_id.hdf5"
                     files = [depth_file_name, segmentation_file_name, tone_map_name]
 
-
-                    csv_file_line = []
-                    
+                    csv_files = [];
                     for file_name in files:
                         path = os.path.join(download_path, file_name)
                         if_file_exists = os.path.isfile(path)
@@ -564,8 +561,6 @@ def download_files_me(url_list,max_file_size_GB,download_path="downloads/", max_
                                 res = z.extract(file_name, download_path)
                                 #downloaded_size+=os.path.getsize(path)
                                 print(res)
-                                csv_file_line.append(file_name)
-
                                 """
                                 if downloaded_size >= max_file_size_bytes:
 
@@ -573,9 +568,12 @@ def download_files_me(url_list,max_file_size_GB,download_path="downloads/", max_
 
                                     return 1
                                 """
+                                csv_files.append(file_name);
                             except KeyError:
-                                continue
-                            image_files_list.append(csv_file_line);
+                                break
+
+                    if(len(csv_files) == len(files)):
+                        image_files_list.append(csv_files);
         except KeyboardInterrupt:
             break;
 
@@ -636,7 +634,7 @@ def download_metadata_files(url_list, download_path="metadata/"):
 
 
 def main():
-    url = URLS[0:5]
+    url = [URLS[1]] #URLS[0:5]
     download_path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] #local: downloads/, euler:
     download_files_me(url, 1, download_path = download_path, max_frames=50)
 
