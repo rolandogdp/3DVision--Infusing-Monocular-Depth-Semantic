@@ -112,7 +112,8 @@ def train(train_loader, model, optimizer, epoch):
 
         image = torch.autograd.Variable(image, requires_grad=False)
         #indices_with_nans = depth.isnan().nonzero()
-        #depth = torch.masked_select(depth, mask=depth.isnan())
+        mask_out_nans = ~depth.isnan()
+        depth = torch.masked_select(depth, mask=mask_out_nans)
         depth = torch.autograd.Variable(depth, requires_grad=False)
         # print("GPU VRAM after autograd:",torch.cuda.mem_get_info())
         # below the usage of 1 corresponds to dept.size(1), but they know it's 1 coz depth
@@ -122,6 +123,7 @@ def train(train_loader, model, optimizer, epoch):
         optimizer.zero_grad()
         # print("GPU VRAM before model call:",torch.cuda.mem_get_info())
         output = model(image)
+        output = torch.masked_select(output, mask=mask_out_nans);
         # print("GPU VRAM output:",torch.cuda.mem_get_info())
 
         depth_grad = get_gradient(depth)
@@ -139,14 +141,10 @@ def train(train_loader, model, optimizer, epoch):
         print(f"output:{output}")
         print(f"depth:{depth}")
 
-        loss_depth_temp = torch.log(torch.abs(output - depth) + 0.5)
-        loss_depth = torch.masked_select(loss_depth_temp, mask=~loss_depth_temp.isnan()).mean()
-        loss_dx_temp = torch.log(torch.abs(output_grad_dx - depth_grad_dx) + 0.5)
-        loss_dx = torch.masked_select(loss_dx_temp, mask=~loss_dx_temp.isnan()).mean()
-        loss_dy_temp = torch.log(torch.abs(output_grad_dy - depth_grad_dy) + 0.5)
-        loss_dy = torch.masked_select(loss_dy_temp, mask=~loss_dy_temp.isnan()).mean()
-        loss_normal_temp = torch.abs(1 - cos(output_normal, depth_normal));
-        loss_normal = torch.masked_select(loss_normal_temp, mask=~loss_normal_temp.isnan()).mean()
+        loss_depth = torch.log(torch.abs(output - depth) + 0.5).mean()
+        loss_dx = torch.log(torch.abs(output_grad_dx - depth_grad_dx) + 0.5).mean()
+        loss_dy = torch.log(torch.abs(output_grad_dy - depth_grad_dy) + 0.5).mean()
+        loss_normal = torch.abs(1 - cos(output_normal, depth_normal)).mean()
 
         print(f"loss_depth:{loss_depth}")
         print(f"loss_dx:{loss_dx}")
