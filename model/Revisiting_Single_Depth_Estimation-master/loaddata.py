@@ -42,9 +42,9 @@ class depthDataset(Dataset):
         if ".hdf5" in depth_name:
             depth_h5py = h5py.File(depth_name, "r")["dataset"][()]
 
-            if(np.isnan(depth_h5py).any()):
-                print(depth_h5py.dtype)
-                print("are there already nan values in raw depth data: ", np.isnan(depth_h5py).any());
+            #if(np.isnan(depth_h5py).any()):
+                #print(depth_h5py.dtype)
+                #print("are there already nan values in raw depth data: ", np.isnan(depth_h5py).any());
 
             depth = Image.fromarray(convert_distance_to_depth(depth_h5py))
         else:

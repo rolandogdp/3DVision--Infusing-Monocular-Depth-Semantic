@@ -24,6 +24,7 @@ parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
 parser.add_argument('--weight-decay', '--wd', default=1e-4, type=float,
                     help='weight decay (default: 1e-4)')
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def define_model(is_resnet, is_densenet, is_senet):
     if is_resnet:
@@ -48,8 +49,11 @@ def main():
     args = parser.parse_args()
     model = define_model(is_resnet=False, is_densenet=False, is_senet=True)
     # print("GPU VRAM model defined:",torch.cuda.mem_get_info())
- 
-    if torch.cuda.device_count() == 8:
+
+    if not torch.cuda.is_available():
+        model.cpu()
+        batch_size = 2
+    elif torch.cuda.device_count() == 8:
         model = torch.nn.DataParallel(model, device_ids=[0, 1, 2, 3, 4, 5, 6, 7]).cuda()
         batch_size = 64
     elif torch.cuda.device_count() == 4:
@@ -84,7 +88,8 @@ def main():
 
 
 def train(train_loader, model, optimizer, epoch):
-    print("GPU VRAM 1:",torch.cuda.mem_get_info())
+    if(torch.cuda.is_available()):
+        print("GPU VRAM 1:",torch.cuda.mem_get_info())
     print(f"===== EPOCH:{epoch} ====== ")
     criterion = nn.L1Loss()
     batch_time = AverageMeter()
@@ -94,37 +99,45 @@ def train(train_loader, model, optimizer, epoch):
 
     cos = nn.CosineSimilarity(dim=1, eps=0)
     # print("GPU VRAM before Sobel:",torch.cuda.mem_get_info())
-    get_gradient = sobel.Sobel().cuda()
-    print("GPU VRAM After Sobel:",torch.cuda.mem_get_info())
+
+    if(torch.cuda.is_available()):
+        get_gradient = sobel.Sobel().cuda()
+    else:
+        get_gradient = sobel.Sobel().cpu()
+
+    if(torch.cuda.is_available()):
+        print("GPU VRAM After Sobel:",torch.cuda.mem_get_info())
 
     end = time.time()
     for i, sample_batched in enumerate(train_loader):
         print("DOING ITERATION:",i)
-        print("Sample batch:",sample_batched)
         # print("GPU VRAM:",torch.cuda.mem_get_info())
         image, depth = sample_batched['image'], sample_batched['depth']
 
-        depth = depth.cuda()
-        image = image.cuda()
-        if depth.isnan().any():
-            print("DOING ITERATION:",i)
-            print("Sample batch:",sample_batched)
+        depth = depth.to(device)
+
+        print(f"depth:{depth}")
+
+        image = image.to(device)
 
         image = torch.autograd.Variable(image, requires_grad=False)
         #indices_with_nans = depth.isnan().nonzero()
-        mask_out_nans = ~depth.isnan()
-        depth = torch.masked_select(depth, mask=mask_out_nans)
+        #mask_out_nans = ~depth.isnan()
+        #depth = torch.masked_select(depth, mask=mask_out_nans, fill = 0)
+        mask_out_nans = depth.isnan()
+        num_nans = (~mask_out_nans).sum()
+        num_nans = torch.autograd.Variable(num_nans, requires_grad=False)
+        depth[mask_out_nans] = 0.
         depth = torch.autograd.Variable(depth, requires_grad=False)
-        # print("GPU VRAM after autograd:",torch.cuda.mem_get_info())
         # below the usage of 1 corresponds to dept.size(1), but they know it's 1 coz depth
-        ones = torch.ones(depth.size(0), 1, depth.size(2),depth.size(3)).float().cuda()
-        
+        ones = torch.ones(depth.size(0), 1, depth.size(2), depth.size(3)).float().to(device)
+
         ones = torch.autograd.Variable(ones, requires_grad=False)
         optimizer.zero_grad()
         # print("GPU VRAM before model call:",torch.cuda.mem_get_info())
         output = model(image)
-        output = torch.masked_select(output, mask=mask_out_nans);
-        # print("GPU VRAM output:",torch.cuda.mem_get_info())
+        output[mask_out_nans] = 0.
+        #output = torch.masked_select(output, mask=mask_out_nans);
 
         depth_grad = get_gradient(depth)
         output_grad = get_gradient(output)
@@ -141,33 +154,31 @@ def train(train_loader, model, optimizer, epoch):
         print(f"output:{output}")
         print(f"depth:{depth}")
 
-        loss_depth = torch.log(torch.abs(output - depth) + 0.5).mean()
-        loss_dx = torch.log(torch.abs(output_grad_dx - depth_grad_dx) + 0.5).mean()
-        loss_dy = torch.log(torch.abs(output_grad_dy - depth_grad_dy) + 0.5).mean()
-        loss_normal = torch.abs(1 - cos(output_normal, depth_normal)).mean()
+        loss_depth = torch.log(torch.abs(output - depth) + 0.5).sum()/num_nans #.mean()
+        loss_dx = torch.log(torch.abs(output_grad_dx - depth_grad_dx) + 0.5).sum()/num_nans #.mean()
+        loss_dy = torch.log(torch.abs(output_grad_dy - depth_grad_dy) + 0.5).sum()/num_nans#.mean()
+        loss_normal = torch.abs(1 - cos(output_normal, depth_normal)).sum()/num_nans #.mean()
 
         print(f"loss_depth:{loss_depth}")
         print(f"loss_dx:{loss_dx}")
         print(f"loss_dy:{loss_dy}")
         print(f"loss_normal:{loss_normal}")
-        
+
         loss = loss_depth + loss_normal + (loss_dx + loss_dy)
-        
+
         losses.update(loss.item(), image.size(0))
         loss.backward()
         optimizer.step()
 
         batch_time.update(time.time() - end)
         end = time.time()
-   
+
         batchSize = depth.size(0)
 
         print('Epoch: [{0}][{1}/{2}]\t'
-          'Time {batch_time.val:.3f} ({batch_time.sum:.3f})\t'
-          'Loss {loss.val:.4f} ({loss.avg:.4f})'
-          .format(epoch, i+1, len(train_loader), batch_time=batch_time, loss=losses))
-        if depth.isnan().any():
-            exit(1)
+            'Time {batch_time.val:.3f} ({batch_time.sum:.3f})\t'
+            'Loss {loss.val:.4f} ({loss.avg:.4f})'
+            .format(epoch, i+1, len(train_loader), batch_time=batch_time, loss=losses))
  
 
 def adjust_learning_rate(optimizer, epoch):
