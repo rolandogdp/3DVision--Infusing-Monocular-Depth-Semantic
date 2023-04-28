@@ -1,8 +1,11 @@
 import os
 import argparse
+
+import pandas as pd
 import requests
 import csv
 import zipfile
+from sklearn.model_selection import train_test_split
 zipfile.ZipExtFile.MIN_READ_SIZE = 2 ** 20
 
 URLS = [
@@ -588,49 +591,17 @@ def download_files_me(url_list,max_file_size_GB,download_path="downloads/", max_
         writer = csv.writer(f)
         writer.writerows(image_files_list)
 
-def download_geometry_preview(url_list, max_file_size_GB, download_path="test/", max_frames=10):
-    # Maybe todo, return a list of the files path/names, or a csv, for easier loading afterwards?
 
-    downloaded_size = 0
-    max_file_size_bytes = max_file_size_GB * (10 ** 9)
-    session = requests.session()
-    for url in url_list:
-        f = WebFile(url, session)
-        z = zipfile.ZipFile(f)
-        frames_list, cam_list = get_scenes(z.namelist())
-        ai_name = url[-14:-4]
-        for cam in cam_list:
-            geometry_preview = f"{ai_name}/images/scene_cam_{cam}_geometry_preview/"
-            #TODO: might need to use toned depth images dont know where they are stored though
-            try:
-                res = z.extract(geometry_preview, download_path)
-                path = os.path.join(download_path, geometry_preview)
-                downloaded_size += os.path.getsize(path)
-                print(res)
+def test_train_split(csv_filename):
+    csv_filename = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] + csv_filename
+    dataframe = pd.read_csv(csv_filename)
+    train, test = train_test_split(dataframe, test_size=None, train_size=None, random_state=8, shuffle=True,
+                                             stratify=None)
 
-                """
-                if downloaded_size >= max_file_size_bytes:
-                    print(
-                        f"Maximum download size reached: {downloaded_size / (10 ** 9)} / {max_file_size_bytes / (10 ** 9)}")
-
-                    return 1
-                """
-            except KeyError:
-                print("An error occured")
-                continue
-
-"""
-def download_metadata_files(url_list, download_path="metadata/"):
-    metadata_scene = f"{ai_name}/_detail/metadata_scene.csv"
-    path = os.path.join(download_path, metadata_scene)
-    if_file_exists = os.path.isfile(path)
-    if not if_file_exists:
-        try:
-            res = z.extract(metadata_scene, download_path)
-            print(res)
-        except KeyboardInterrupt:
-            break;
-"""
+    print(list(train.columns.values))
+    print(train)
+    train.to_csv(os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']+"train_data.csv", index=False)
+    test.to_csv(os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']+"test_data.csv", index=False)
 
 
 parser = argparse.ArgumentParser(description='Hypersim dataset downloader')
@@ -639,17 +610,14 @@ parser.add_argument('--max_frames', default=10, type=int,
 parser.add_argument('--urls', default=1, type=int,
                     help='maximum number of scenes/url ')
 
-
-
 def main():
     global args
     args = parser.parse_args()
     
     url = URLS[0:args.urls]
-    download_path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] #local: downloads/, euler:
+    download_path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] #local: downloads/, euler: /cluster/project/infk/courses/252-0579-00L/group37/downloads/
     download_files_me(url, 1, download_path = download_path, max_frames=args.max_frames)
 
-    #download_geometry_preview([URLS[0]], 0.5, download_path = "test/")
 
 if __name__ == '__main__':
     main()
