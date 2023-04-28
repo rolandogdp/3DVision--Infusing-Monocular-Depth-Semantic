@@ -88,8 +88,8 @@ def main():
 
 
 def train(train_loader, model, optimizer, epoch):
-    if(torch.cuda.is_available()):
-        print("GPU VRAM 1:",torch.cuda.mem_get_info())
+    # if(torch.cuda.is_available()):
+    #     print("GPU VRAM 1:",torch.cuda.mem_get_info())
     print(f"===== EPOCH:{epoch} ====== ")
     criterion = nn.L1Loss()
     batch_time = AverageMeter()
@@ -110,13 +110,13 @@ def train(train_loader, model, optimizer, epoch):
 
     end = time.time()
     for i, sample_batched in enumerate(train_loader):
-        print("DOING ITERATION:",i)
+        # print("DOING ITERATION:",i)
         # print("GPU VRAM:",torch.cuda.mem_get_info())
         image, depth = sample_batched['image'], sample_batched['depth']
-
+        # print(f"depth:{depth}")
         depth = depth.to(device)
 
-        print(f"depth:{depth}")
+        # print(f"AFTER TO DEVICE depth:{depth}")
 
         image = image.to(device)
 
@@ -151,18 +151,18 @@ def train(train_loader, model, optimizer, epoch):
 
         # depth_normal = F.normalize(depth_normal, p=2, dim=1)
         # output_normal = F.normalize(output_normal, p=2, dim=1)
-        print(f"output:{output}")
-        print(f"depth:{depth}")
+        # print(f"output:{output}")
+        # print(f"depth:{depth}")
 
         loss_depth = torch.log(torch.abs(output - depth) + 0.5).sum()/num_nans #.mean()
         loss_dx = torch.log(torch.abs(output_grad_dx - depth_grad_dx) + 0.5).sum()/num_nans #.mean()
         loss_dy = torch.log(torch.abs(output_grad_dy - depth_grad_dy) + 0.5).sum()/num_nans#.mean()
         loss_normal = torch.abs(1 - cos(output_normal, depth_normal)).sum()/num_nans #.mean()
 
-        print(f"loss_depth:{loss_depth}")
-        print(f"loss_dx:{loss_dx}")
-        print(f"loss_dy:{loss_dy}")
-        print(f"loss_normal:{loss_normal}")
+        # print(f"loss_depth:{loss_depth}")
+        # print(f"loss_dx:{loss_dx}")
+        # print(f"loss_dy:{loss_dy}")
+        # print(f"loss_normal:{loss_normal}")
 
         loss = loss_depth + loss_normal + (loss_dx + loss_dy)
 
@@ -179,6 +179,8 @@ def train(train_loader, model, optimizer, epoch):
             'Time {batch_time.val:.3f} ({batch_time.sum:.3f})\t'
             'Loss {loss.val:.4f} ({loss.avg:.4f})'
             .format(epoch, i+1, len(train_loader), batch_time=batch_time, loss=losses))
+        if loss.isnan().any():
+            exit()
  
 
 def adjust_learning_rate(optimizer, epoch):

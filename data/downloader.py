@@ -633,10 +633,21 @@ def download_metadata_files(url_list, download_path="metadata/"):
 """
 
 
+parser = argparse.ArgumentParser(description='Hypersim dataset downloader')
+parser.add_argument('--max_frames', default=10, type=int,
+                    help='maximum frames per scene')
+parser.add_argument('--urls', default=1, type=int,
+                    help='maximum number of scenes/url ')
+
+
+
 def main():
-    url = [URLS[1]] #URLS[0:5]
+    global args
+    args = parser.parse_args()
+    
+    url = URLS[0:args.urls]
     download_path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] #local: downloads/, euler:
-    download_files_me(url, 1, download_path = download_path, max_frames=50)
+    download_files_me(url, 1, download_path = download_path, max_frames=args.max_frames)
 
     #download_geometry_preview([URLS[0]], 0.5, download_path = "test/")
 

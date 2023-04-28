@@ -83,13 +83,13 @@ def getTrainingData(batch_size=64, csv_filename="image_files.csv"):
                                             RandomRotate(5),
                                             CenterCrop([304, 228], [152, 114]),
                                             ToTensor(),
-                                            Lighting(0.1, __imagenet_pca[
-                                                'eigval'], __imagenet_pca['eigvec']),
-                                            ColorJitter(
-                                                brightness=0.4,
-                                                contrast=0.4,
-                                                saturation=0.4,
-                                            ),
+                                            #Lighting(0.1, __imagenet_pca[
+                                             #   'eigval'], __imagenet_pca['eigvec']),
+                                            #ColorJitter(
+                                            #    brightness=0.4,
+                                            #    contrast=0.4,
+                                            #    saturation=0.4,
+                                           # ),
                                             Normalize(mean,
                                                       std)
                                         ]))
