@@ -610,14 +610,17 @@ parser.add_argument('--max_frames', default=10, type=int,
 parser.add_argument('--urls', default=1, type=int,
                     help='maximum number of scenes/url ')
 
+parser.add_argument("--download", default=False, type=bool, help="set to True if one wants to redownload data")
+
 def main():
     global args
     args = parser.parse_args()
-    
-    url = URLS[0:args.urls]
-    download_path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] #local: downloads/, euler: /cluster/project/infk/courses/252-0579-00L/group37/downloads/
-    download_files_me(url, 1, download_path = download_path, max_frames=args.max_frames)
+    download_path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']  # local: downloads/, euler: /cluster/project/infk/courses/252-0579-00L/group37/downloads/
+    if(args.download):
+        url = URLS[0:args.urls]
+        download_files_me(url, 1, download_path = download_path, max_frames=args.max_frames)
 
+    test_train_split("image_files.csv")
 
 if __name__ == '__main__':
     main()
