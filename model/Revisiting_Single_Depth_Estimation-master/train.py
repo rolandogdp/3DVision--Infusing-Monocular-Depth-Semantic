@@ -79,6 +79,10 @@ def main():
         train(train_loader, model, optimizer, epoch)
         end_time_loop = time.time()
         print(f"EPOCH TRAINED FOR :{end_time_loop-start_time_loop} ")
+        
+        if epoch % 5 == 0:
+            validation(train_loader=train_loader,model=model)
+
          
     end_time = time.time()
     print(f"TRAINED FOR:{end_time-start_time} ")
@@ -174,6 +178,7 @@ def train(train_loader, model, optimizer, epoch):
         end = time.time()
 
         batchSize = depth.size(0)
+        validation(train_loader=train_loader,model=model,loss_depth=loss_depth,loss_dx=loss_dx,loss_dy=loss_dy,loss_normal=loss_normal,loss=loss)
 
         print('Epoch: [{0}][{1}/{2}]\t'
             'Time {batch_time.val:.3f} ({batch_time.sum:.3f})\t'
@@ -182,6 +187,60 @@ def train(train_loader, model, optimizer, epoch):
         if loss.isnan().any():
             exit()
  
+
+def validation(data_loader,model,loss_depth,loss_dx,loss_dy,loss_normal,loss):
+    cos = nn.CosineSimilarity(dim=1, eps=0)
+    model.eval()
+    with torch.no_grad():
+        if(torch.cuda.is_available()):
+            get_gradient = sobel.Sobel().cuda()
+        else:
+            get_gradient = sobel.Sobel().cpu()
+
+        # predict model on first sample from loader 
+        batch = data_loader.__getitem__(0)
+        image, depth = batch['image'], batch['depth']
+        depth = depth.to(device)
+        image = image.to(device)
+        # predict model on first sameple from testing
+        image = torch.autograd.Variable(image, requires_grad=False)
+        mask_out_nans = depth.isnan()
+        num_nans = (~mask_out_nans).sum()
+        num_nans = torch.autograd.Variable(num_nans, requires_grad=False)
+        depth[mask_out_nans] = 0.
+        depth = torch.autograd.Variable(depth, requires_grad=False)
+        # below the usage of 1 corresponds to dept.size(1), but they know it's 1 coz depth
+        ones = torch.ones(depth.size(0), 1, depth.size(2), depth.size(3)).float().to(device)
+
+        ones = torch.autograd.Variable(ones, requires_grad=False)
+        # print("GPU VRAM before model call:",torch.cuda.mem_get_info())
+        output = model(image)
+        output[mask_out_nans] = 0.
+        #output = torch.masked_select(output, mask=mask_out_nans);
+
+        depth_grad = get_gradient(depth)
+        output_grad = get_gradient(output)
+        depth_grad_dx = depth_grad[:, 0, :, :].contiguous().view_as(depth)
+        depth_grad_dy = depth_grad[:, 1, :, :].contiguous().view_as(depth)
+        output_grad_dx = output_grad[:, 0, :, :].contiguous().view_as(depth)
+        output_grad_dy = output_grad[:, 1, :, :].contiguous().view_as(depth)
+
+        depth_normal = torch.cat((-depth_grad_dx, -depth_grad_dy, ones), 1)
+        output_normal = torch.cat((-output_grad_dx, -output_grad_dy, ones), 1)
+
+        loss_depth = torch.log(torch.abs(output - depth) + 0.5).sum()/num_nans #.mean()
+        loss_dx = torch.log(torch.abs(output_grad_dx - depth_grad_dx) + 0.5).sum()/num_nans #.mean()
+        loss_dy = torch.log(torch.abs(output_grad_dy - depth_grad_dy) + 0.5).sum()/num_nans#.mean()
+        loss_normal = torch.abs(1 - cos(output_normal, depth_normal)).sum()/num_nans #.mean()
+
+
+
+        loss = loss_depth + loss_normal + (loss_dx + loss_dy)
+        
+        return {"output":output,"loss_depth" :loss_depth,"loss_dx":loss_dx,
+        "loss_dy":loss_dy,"loss_normal":loss_normal }
+
+
 
 def adjust_learning_rate(optimizer, epoch):
     lr = args.lr * (0.1 ** (epoch // 5))
