@@ -120,8 +120,8 @@ def getTestingData(batch_size=64, csv_filename="images_files.csv"):
     transformed_testing = depthDataset(csv_file=filename,
                                        transform=transforms.Compose([
                                            Scale(240),
-                                           CenterCrop([304, 228], [304, 228]),
-                                           ToTensor(is_test=True),
+                                           CenterCrop([304, 228],[152, 114]),
+                                           ToTensor(),
                                            Normalize(mean,
                                                      std)
                                        ]))

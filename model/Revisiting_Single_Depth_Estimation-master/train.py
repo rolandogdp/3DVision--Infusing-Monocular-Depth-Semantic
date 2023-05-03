@@ -81,6 +81,8 @@ def main():
     print("DataLoader finished loading")
     # print("BatchSize:",batch_size)
     # print("GPU VRAM 0:",torch.cuda.mem_get_info())
+    training_depth_res = []
+    validation_depth_res = []
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
         start_time_loop = time.time()
@@ -88,21 +90,45 @@ def main():
         train(train_loader, model, optimizer, epoch)
         end_time_loop = time.time()
         print(f"EPOCH TRAINED FOR :{end_time_loop-start_time_loop} ")
-        # res_training = validation(data_loader=train_loader,model=model)
-        # save_results(res_training,True,filename_date)
+        res_training = validation(data_loader=train_loader,model=model)
+        training_depth_res.append(res_training["output"])
+        res_training.pop("output")
+        save_results(res_training,True,filename_date)
+
+        
         print("Saved training results")
         if epoch % 5 == 0:
-            # res_validation = validation(data_loader=test_loader,model=model)
-            # save_results(res_validation,False,filename_date)
+            res_validation = validation(data_loader=test_loader,model=model)
+            validation_depth_res.append(res_validation["output"])
+            res_validation.pop("output")
+            
+            save_results(res_validation,False,filename_date)
+            
             print("Saved validation data.")
+        
+            
             
 
+    path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +"../outputs/results/"
+    
+    
+    filename_train = f"train-{filename_date}"
+    filename_val = f"validation-{filename_date}"
+
+    # Write the outputs
+    file=path+filename_train+"-depth.pt"
+    torch.save(torch.concat(training_depth_res).unsqueeze(1),file)
+    file=path+filename_val+"-depth.pt"
+    torch.save(torch.concat(validation_depth_res).unsqueeze(1),file)
+    
          
     end_time = time.time()
     print(f"TRAINED FOR:{end_time-start_time} ")
-
     
-    save_checkpoint({'state_dict': model.state_dict()},f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}.pth.tar")
+
+    file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}.pth.tar"
+    print("Saving checkpoint to:", file)
+    save_checkpoint({'state_dict': model.state_dict()},file)
 
 
 def train(train_loader, model, optimizer, epoch):
@@ -229,6 +255,7 @@ def validation(data_loader,model):
         ones = torch.autograd.Variable(ones, requires_grad=False)
         # print("GPU VRAM before model call:",torch.cuda.mem_get_info())
         output = model(image)
+        mask_out_nans = output.isnan()
         output[mask_out_nans] = 0.
         #output = torch.masked_select(output, mask=mask_out_nans);
 
@@ -259,15 +286,10 @@ def save_results(results:dict,trainingQ=True,filename_date=""):
     global csv_header_created
     # We want for training to save all epochs and outputs. 
     path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +"../outputs/results/"
-    filename = ""
-    if trainingQ:
-        filename = f"train-{filename_date}"
+    
+    if trainingQ:filename = f"train-{filename_date}"
     else: filename = f"validation-{filename_date}"
 
-    # Write the outputs
-    with open(file=path+filename+"-depth.pt",mode="a") as file:
-        torch.save(torch.concat(results["output"]).unsqueeze(1),file)
-    results.pop("output")
     
     results_filename = path+filename+"-results.csv"
     
