@@ -1,5 +1,6 @@
 import argparse
 
+import csv
 import time
 import torch
 import torch.nn as nn
@@ -11,7 +12,10 @@ import util
 import numpy as np
 import sobel
 import datetime
+import os
 from models import modules, net, resnet, densenet, senet
+
+csv_header_created = False
 
 parser = argparse.ArgumentParser(description='PyTorch DenseNet Training')
 parser.add_argument('--epochs', default=1, type=int,
@@ -49,6 +53,8 @@ def main():
     args = parser.parse_args()
     model = define_model(is_resnet=False, is_densenet=False, is_senet=True)
     # print("GPU VRAM model defined:",torch.cuda.mem_get_info())
+    now = datetime.datetime.now()
+    filename_date = f".{str(now.strftime('%m-%d-%Y-%H-%M-%S'))}"
 
     if not torch.cuda.is_available():
         model.cpu()
@@ -68,8 +74,11 @@ def main():
     cudnn.benchmark = True
     optimizer = torch.optim.Adam(model.parameters(), args.lr, weight_decay=args.weight_decay)
     # print("GPU VRAM optimizer:",torch.cuda.mem_get_info())
-
-    train_loader = loaddata.getTrainingData(batch_size)
+    print("Starting to load the data.")
+    train_loader = loaddata.getTrainingData(batch_size,"train_data.csv")
+    test_loader = loaddata.getTestingData(1,"train_data.csv")
+    test_loader = loaddata.getTestingData(1,"test_data.csv")
+    print("DataLoader finished loading")
     # print("BatchSize:",batch_size)
     # print("GPU VRAM 0:",torch.cuda.mem_get_info())
     start_time = time.time()
@@ -79,16 +88,21 @@ def main():
         train(train_loader, model, optimizer, epoch)
         end_time_loop = time.time()
         print(f"EPOCH TRAINED FOR :{end_time_loop-start_time_loop} ")
-        
+        # res_training = validation(data_loader=train_loader,model=model)
+        # save_results(res_training,True,filename_date)
+        print("Saved training results")
         if epoch % 5 == 0:
-            validation(train_loader=train_loader,model=model)
+            # res_validation = validation(data_loader=test_loader,model=model)
+            # save_results(res_validation,False,filename_date)
+            print("Saved validation data.")
+            
 
          
     end_time = time.time()
     print(f"TRAINED FOR:{end_time-start_time} ")
 
     
-    save_checkpoint({'state_dict': model.state_dict()})
+    save_checkpoint({'state_dict': model.state_dict()},f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}.pth.tar")
 
 
 def train(train_loader, model, optimizer, epoch):
@@ -178,17 +192,17 @@ def train(train_loader, model, optimizer, epoch):
         end = time.time()
 
         batchSize = depth.size(0)
-        validation(train_loader=train_loader,model=model,loss_depth=loss_depth,loss_dx=loss_dx,loss_dy=loss_dy,loss_normal=loss_normal,loss=loss)
 
         print('Epoch: [{0}][{1}/{2}]\t'
             'Time {batch_time.val:.3f} ({batch_time.sum:.3f})\t'
             'Loss {loss.val:.4f} ({loss.avg:.4f})'
             .format(epoch, i+1, len(train_loader), batch_time=batch_time, loss=losses))
         if loss.isnan().any():
-            exit()
+            # exit()
+            print("=====NAN VALUE IN LOSS !!!!! =====================")
  
 
-def validation(data_loader,model,loss_depth,loss_dx,loss_dy,loss_normal,loss):
+def validation(data_loader,model):
     cos = nn.CosineSimilarity(dim=1, eps=0)
     model.eval()
     with torch.no_grad():
@@ -198,7 +212,7 @@ def validation(data_loader,model,loss_depth,loss_dx,loss_dy,loss_normal,loss):
             get_gradient = sobel.Sobel().cpu()
 
         # predict model on first sample from loader 
-        batch = data_loader.__getitem__(0)
+        batch =  next(iter(data_loader)) 
         image, depth = batch['image'], batch['depth']
         depth = depth.to(device)
         image = image.to(device)
@@ -238,8 +252,37 @@ def validation(data_loader,model,loss_depth,loss_dx,loss_dy,loss_normal,loss):
         loss = loss_depth + loss_normal + (loss_dx + loss_dy)
         
         return {"output":output,"loss_depth" :loss_depth,"loss_dx":loss_dx,
-        "loss_dy":loss_dy,"loss_normal":loss_normal }
+        "loss_dy":loss_dy,"loss_normal":loss_normal,"loss":loss }
+        
 
+def save_results(results:dict,trainingQ=True,filename_date=""):
+    global csv_header_created
+    # We want for training to save all epochs and outputs. 
+    path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +"../outputs/results/"
+    filename = ""
+    if trainingQ:
+        filename = f"train-{filename_date}"
+    else: filename = f"validation-{filename_date}"
+
+    # Write the outputs
+    with open(file=path+filename+"-depth.pt",mode="a") as file:
+        torch.save(torch.concat(results["output"]).unsqueeze(1),file)
+    results.pop("output")
+    
+    results_filename = path+filename+"-results.csv"
+    
+        
+    
+    with open(results_filename,mode="a") as file:
+        w = csv.DictWriter(file, results.keys())
+        if not csv_header_created:
+            w.writeheader()
+            csv_header_created = True
+        w.writerow(results)
+        
+
+
+    
 
 
 def adjust_learning_rate(optimizer, epoch):

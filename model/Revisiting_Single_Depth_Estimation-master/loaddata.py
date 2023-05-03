@@ -75,7 +75,7 @@ def getTrainingData(batch_size=64, csv_filename="image_files.csv"):
     filename = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']  + csv_filename
 
     mean, std = get_dataset_stats(csv_filename=filename)  # TODO: only extracts image stats of particular subset but not of the entire dataset
-
+    print(f"TRAINING DATA Mean and std : mean:{mean} ,std:{std}")
     transformed_training = depthDataset(csv_file=filename,
                                         transform=transforms.Compose([
                                             Scale(240),
@@ -110,12 +110,12 @@ def getTestingData(batch_size=64, csv_filename="images_files.csv"):
 
     filename = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] + csv_filename
 
-    print(filename)
+    # print(filename)
 
     mean, std = get_dataset_stats(csv_filename=filename) #TODO: only extracts image stats of particular subset but not of the entire dataset
 
-    print(mean)
-    print(std)
+    # print(mean)
+    # print(std)
     # scale = random.uniform(1, 1.5)
     transformed_testing = depthDataset(csv_file=filename,
                                        transform=transforms.Compose([
