@@ -533,13 +533,16 @@ def download_files_me(url_list,max_file_size_GB,download_path="downloads/", max_
     # Maybe todo, return a list of the files path/names, or a csv, for easier loading afterwards?
     
     #create csv files
-    image_files_list = [];
+    train_data = [];
+    validation_data = [];
+    test_data = [];
     abs_dl_path = os.path.abspath(download_path) + "/"
     
     downloaded_size = 0
     max_file_size_bytes = max_file_size_GB * (10**9)
     session = requests.session()
-    for url in url_list:
+    for index, url in enumerate(url_list):
+        print(index)
         f = WebFile(url, session)
         z = zipfile.ZipFile(f)
         frames_list,cam_list = get_scenes(z.namelist())
@@ -576,20 +579,32 @@ def download_files_me(url_list,max_file_size_GB,download_path="downloads/", max_
                                 break
 
                     if(len(csv_files) == len(files)):
-                        image_files_list.append(csv_files);
+                        if(index % 5 == 0):
+                            validation_data.append(csv_files);
+                        elif(index % 6 == 0):
+                            test_data.append(csv_files);
+                        else:
+                            train_data.append(csv_files);
         except KeyboardInterrupt:
             break;
 
-    file_exists = os.path.isfile(os.path.join(download_path, "image_files.csv"))
+    for file_name in ["train_data.csv", "test_data.csv", "validation_data.csv"]:
+        file_already_exists = os.path.isfile(os.path.join(download_path, file_name))
+        if not file_already_exists:
+            f = open(os.path.join(download_path, file_name), "w", newline="")
+            writer = csv.writer(f)
+            writer.writerow(["Depth", "Segmentation", "ToneMapped"])
 
-    if not file_exists:
-        f = open(os.path.join(download_path, "image_files.csv"), "w", newline="")
-        writer = csv.writer(f)
-        writer.writerow(["Depth", "Segmentation", "ToneMapped"])
+        if(file_name == "train_data.csv"):
+            data = train_data
+        elif(file_name == "test_data.csv"):
+            data = test_data
+        elif(file_name == "validation_data.csv"):
+            data = validation_data
 
-    with open(os.path.join(download_path, "image_files.csv"), "a", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerows(image_files_list)
+        with open(os.path.join(download_path, file_name), "a", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerows(data)
 
 
 def test_train_split(csv_filename):
@@ -620,7 +635,7 @@ def main():
         url = URLS[0:args.urls]
         download_files_me(url, 1, download_path = download_path, max_frames=args.max_frames)
 
-    test_train_split("image_files.csv")
+    #test_train_split("image_files.csv")
 
 if __name__ == '__main__':
     main()
