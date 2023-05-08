@@ -22,6 +22,7 @@ pip install numpy
 pip install pandas
 pip install scipy
 pip install matplotlib  
+pip install scikit-learn
 
 export THREED_VISION_ABSOLUTE_DOWNLOAD_PATH=/cluster/project/infk/courses/252-0579-00L/group37/downloads/ 
 
