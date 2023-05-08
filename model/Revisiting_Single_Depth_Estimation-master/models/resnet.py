@@ -5,6 +5,8 @@ import torch.nn.functional as F
 import torch
 import numpy as np
 
+import ../set_method
+
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            'resnet152']
 
@@ -100,7 +102,19 @@ class ResNet(nn.Module):
     def __init__(self, block, layers, num_classes=1000):
         self.inplanes = 64
         super(ResNet, self).__init__()
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
+
+        num_input_channels = 3 #default
+        if(my_method == Method.SEGMENTATIONMASKGRAYSCALE):
+            num_input_channels =  4
+        elif(my_method == Method.SEGMENTATIONMASKBOUNDARIES):
+            num_input_channels = 5
+        elif(my_method == Method.SEGMENTATIONMASKONEHOT):
+            num_input_channels = 43  #TODO: Figure out the number of classes to be used
+        else:
+            num_input_channels = 3
+
+
+        self.conv1 = nn.Conv2d(num_input_channels, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
@@ -112,6 +126,7 @@ class ResNet(nn.Module):
         self.avgpool = nn.AvgPool2d(7, stride=1)
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 
+        #whats happening here???
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
@@ -183,6 +198,7 @@ def resnet50(pretrained=False, **kwargs):
     """
     model = ResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
     if pretrained:
+        #TODO: adapt weights according to method
         model.load_state_dict(model_zoo.load_url(model_urls['resnet50'], 'pretrained_model/encoder'))
     return model
 

@@ -12,6 +12,8 @@ import numpy as np
 import sobel
 import datetime
 from models import modules, net, resnet, densenet, senet
+from enum import Enum
+import set_method
 
 parser = argparse.ArgumentParser(description='PyTorch DenseNet Training')
 parser.add_argument('--epochs', default=1, type=int,
@@ -24,15 +26,20 @@ parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
 parser.add_argument('--weight-decay', '--wd', default=1e-4, type=float,
                     help='weight decay (default: 1e-4)')
 
+parser.add_argument('--method', default=Method.NOSEGMENTATIONCUES, type=Enum, help="specify in which format the segmentation maps should be used as an additional input, options NOSEGMENTATIONCUES,  SEGMENTATIONMASKGRAYSCALE, SEGMENTATIONMASKBOUNDARIES, SEGMENTATIONMASKONEHOT")
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+
 def define_model(is_resnet, is_densenet, is_senet):
+    if my_method != Method.NOSEGMENTATIONCUES:
+        pretrained = False
     if is_resnet:
-        original_model = resnet.resnet50(pretrained = True)
+        original_model = resnet.resnet50(pretrained=pretrained)
         Encoder = modules.E_resnet(original_model) 
         model = net.model(Encoder, num_features=2048, block_channel = [256, 512, 1024, 2048])
     if is_densenet:
-        original_model = densenet.densenet161(pretrained=True)
+        original_model = densenet.densenet161(pretrained=pretrained)
         Encoder = modules.E_densenet(original_model)
         model = net.model(Encoder, num_features=2208, block_channel = [192, 384, 1056, 2208])
     if is_senet:
@@ -41,13 +48,13 @@ def define_model(is_resnet, is_densenet, is_senet):
         model = net.model(Encoder, num_features=2048, block_channel = [256, 512, 1024, 2048])
 
     return model
-   
 
 def main():
     # print("GPU VRAM MAIN:",torch.cuda.mem_get_info())
     global args
     args = parser.parse_args()
-    model = define_model(is_resnet=False, is_densenet=False, is_senet=True)
+    set_method.init(args.method) #initialize the desired method
+    model = define_model(is_resnet=True, is_densenet=False, is_senet=False)
     # print("GPU VRAM model defined:",torch.cuda.mem_get_info())
 
     if not torch.cuda.is_available():
@@ -122,6 +129,7 @@ def train(train_loader, model, optimizer, epoch):
 
         # print(f"AFTER TO DEVICE depth:{depth}")
 
+
         image = image.to(device)
 
         image = torch.autograd.Variable(image, requires_grad=False)
@@ -186,8 +194,6 @@ def train(train_loader, model, optimizer, epoch):
             .format(epoch, i+1, len(train_loader), batch_time=batch_time, loss=losses))
         if loss.isnan().any():
             exit()
- 
-
 def validation(data_loader,model,loss_depth,loss_dx,loss_dy,loss_normal,loss):
     cos = nn.CosineSimilarity(dim=1, eps=0)
     model.eval()
@@ -233,14 +239,10 @@ def validation(data_loader,model,loss_depth,loss_dx,loss_dy,loss_normal,loss):
         loss_dy = torch.log(torch.abs(output_grad_dy - depth_grad_dy) + 0.5).sum()/num_nans#.mean()
         loss_normal = torch.abs(1 - cos(output_normal, depth_normal)).sum()/num_nans #.mean()
 
-
-
         loss = loss_depth + loss_normal + (loss_dx + loss_dy)
         
         return {"output":output,"loss_depth" :loss_depth,"loss_dx":loss_dx,
         "loss_dy":loss_dy,"loss_normal":loss_normal }
-
-
 
 def adjust_learning_rate(optimizer, epoch):
     lr = args.lr * (0.1 ** (epoch // 5))

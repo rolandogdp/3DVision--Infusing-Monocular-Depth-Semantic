@@ -10,6 +10,8 @@ except ImportError:
 import random
 import scipy.ndimage as ndimage
 
+import sobel
+
 import pdb
 
 
@@ -38,8 +40,8 @@ class RandomRotate(object):
         self.reshape = reshape
         self.order = order
 
-    def __call__(self, sample):
-        image, depth = sample['image'], sample['depth']
+    def __call__(self, image):
+        #image, depth = sample['image'], sample['depth']
 
         applied_angle = random.uniform(-self.angle, self.angle)
         angle1 = applied_angle
@@ -47,31 +49,28 @@ class RandomRotate(object):
 
         image = ndimage.interpolation.rotate(
             image, angle1, reshape=self.reshape, order=self.order)
-        depth = ndimage.interpolation.rotate(
-            depth, angle1, reshape=self.reshape, order=self.order)
+        #depth = ndimage.interpolation.rotate(
+            #depth, angle1, reshape=self.reshape, order=self.order)
 
         image = Image.fromarray(image)
-        depth = Image.fromarray(depth)
+        #depth = Image.fromarray(depth)
 
-        return {'image': image, 'depth': depth}
+        return image #{'image': image, 'depth': depth}
 
 class RandomHorizontalFlip(object):
 
-    def __call__(self, sample):
-        image, depth = sample['image'], sample['depth']
+    def __call__(self, image):
+        #image, depth = sample['image'], sample['depth']
 
         if not _is_pil_image(image):
             raise TypeError(
                 'img should be PIL Image. Got {}'.format(type(img)))
-        if not _is_pil_image(depth):
-            raise TypeError(
-                'img should be PIL Image. Got {}'.format(type(depth)))
 
         if random.random() < 0.5:
             image = image.transpose(Image.FLIP_LEFT_RIGHT)
-            depth = depth.transpose(Image.FLIP_LEFT_RIGHT)
+            #depth = depth.transpose(Image.FLIP_LEFT_RIGHT)
 
-        return {'image': image, 'depth': depth}
+        return image #{'image': image, 'depth': depth}
 
 
 class Scale(object):
@@ -83,18 +82,19 @@ class Scale(object):
     interpolation order: Default: 2 (bilinear)
     """
 
-    def __init__(self, size):
+    def __init__(self, size, interpolation_strategy=Image.BILINEAR):
         self.size = size
+        self.interpolation_strategy = interpolation_strategy
 
-    def __call__(self, sample):
-        image, depth = sample['image'], sample['depth']
+    def __call__(self, image):
+        #image, depth = sample['image'], sample['depth']
 
-        image = self.changeScale(image, self.size)
-        depth = self.changeScale(depth, self.size,Image.NEAREST)
+        image = self.changeScale(image, self.size, self.interpolation_strategy)
+        #depth = self.changeScale(depth, self.size,Image.NEAREST)
  
-        return {'image': image, 'depth': depth}
+        return image #{'image': image, 'depth': depth}
 
-    def changeScale(self, img, size, interpolation=Image.BILINEAR):
+    def changeScale(self, img, size, interpolation):
 
         if not _is_pil_image(img):
             raise TypeError(
@@ -119,20 +119,21 @@ class Scale(object):
 
 
 class CenterCrop(object):
-    def __init__(self, size_image, size_depth):
+    def __init__(self, size_image, resizing_size): #resizing size was size depth
         self.size_image = size_image
-        self.size_depth = size_depth
+        self.size_depth = resizing_size
 
-    def __call__(self, sample):
-        image, depth = sample['image'], sample['depth']
+    def __call__(self, image):
+        #image, depth = sample['image'], sample['depth']
 
         image = self.centerCrop(image, self.size_image)
-        depth = self.centerCrop(depth, self.size_image)
+        #depth = self.centerCrop(depth, self.size_image)
 
-        ow, oh = self.size_depth
-        depth = depth.resize((ow, oh))
+        ow, oh = self.resizing_size
+        #depth = depth.resize((ow, oh))
+        image = image.resize((ow, oh))
 
-        return {'image': image, 'depth': depth}
+        return image #{'image': image, 'depth': depth}
 
     def centerCrop(self, image, size):
 
@@ -146,12 +147,9 @@ class CenterCrop(object):
         x1 = int(round((w1 - tw) / 2.))
         y1 = int(round((h1 - th) / 2.))
 
-        image = image.crop((x1, y1, tw + x1, th + y1))
+        image = image.crop((x1, y1, tw + x1, th + y1)) #args: left, top, right, bottom
 
         return image
-
-
-
 
 class ToTensor(object):
     """Convert a ``PIL.Image`` or ``numpy.ndarray`` to tensor.
@@ -161,8 +159,8 @@ class ToTensor(object):
     def __init__(self,is_test=False):
         self.is_test = is_test
 
-    def __call__(self, sample):
-        image, depth = sample['image'], sample['depth']
+    def __call__(self, image):
+        #image, depth = sample['image'], sample['depth']
         """
         Args:
             pic (PIL.Image or numpy.ndarray): Image to be converted to tensor.
@@ -171,11 +169,13 @@ class ToTensor(object):
         """
         # ground truth depth of training samples is stored in 8-bit while test samples are saved in 16 bit
         image = self.to_tensor(image)
+        """
         if self.is_test:
             depth = self.to_tensor(depth).float() #/1000 TODO: maybe a NYU-Depth thing
         else:            
             depth = self.to_tensor(depth).float() #*10
-        return {'image': image, 'depth': depth}
+        """
+        return image #{'image': image, 'depth': depth}
 
     def to_tensor(self, pic):
         if not(_is_pil_image(pic) or _is_numpy_image(pic)):
@@ -242,12 +242,11 @@ class Lighting(object):
 
         return {'image': image, 'depth': depth}
 
-
 class Grayscale(object):
 
     def __call__(self, img):
         gs = img.clone()
-        gs[0].mul_(0.299).add_(0.587, gs[1]).add_(0.114, gs[2])
+        gs[0].mul_(0.299).add_(0.587, gs[1]).add_(0.114, gs[2]) #luminosity method
         gs[1].copy_(gs[0])
         gs[2].copy_(gs[0])
         return gs
@@ -318,6 +317,34 @@ class ColorJitter(RandomOrder):
         if saturation != 0:
             self.transforms.append(Saturation(saturation))
 
+
+
+class CannyEdgeDetection(object):
+    """"
+    extract the edges of the segmentation masks using canny edge detection
+    """
+
+    def __init__(self, threshold):
+        self.threshold = threshold
+
+    def __call__(self, image):
+        image = self.edge_detection(image)
+        return image
+
+    def edge_detection(self, image):
+        if (torch.cuda.is_available()):
+            get_edge = sobel.Sobel().cuda()
+        else
+            get_edge = sobel.Sobel()
+
+        edge_xy = get_edge(image)
+        edge_sobel = torch.pow(edge_xy[0, :, :], 2) + \
+                     torch.pow(edge_xy[1, :, :], 2)
+        edge_sobel = torch.sqrt(edge_sobel)
+
+        edge_sobel = (edge_sobel > self.thershold)
+
+        return edge_sobel
 class MaskInvalidData(object):
     """
     uses pytorch prototype of mask to ignore all the NaN
@@ -340,18 +367,18 @@ class Normalize(object):
         self.mean = mean
         self.std = std
 
-    def __call__(self, sample):
+    def __call__(self, image):
         """
         Args:
             tensor (Tensor): Tensor image of size (C, H, W) to be normalized.
         Returns:
             Tensor: Normalized image.
         """
-        image, depth = sample['image'], sample['depth']
+        #image, depth = sample['image'], sample['depth']
 
         image = self.normalize(image, self.mean, self.std)
 
-        return {'image': image, 'depth': depth}
+        return image#{'image': image, 'depth': depth}
 
     def normalize(self, tensor, mean, std):
         """Normalize a tensor image with mean and standard deviation.

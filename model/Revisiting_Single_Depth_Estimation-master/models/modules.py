@@ -50,7 +50,6 @@ class E_resnet(nn.Module):
         self.layer2 = original_model.layer2
         self.layer3 = original_model.layer3
         self.layer4 = original_model.layer4
-       
 
     def forward(self, x):
         x = self.conv1(x)
