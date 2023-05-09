@@ -144,7 +144,6 @@ def main():
     print("Saving checkpoint to:", file)
     save_checkpoint({'state_dict': model.state_dict()},file)
 
-
 def train(train_loader, model, optimizer, epoch):
     # if(torch.cuda.is_available()):
     #     print("GPU VRAM 1:",torch.cuda.mem_get_info())
@@ -242,6 +241,8 @@ def train(train_loader, model, optimizer, epoch):
         if loss.isnan().any():
             # exit()
             print("=====NAN VALUE IN LOSS !!!!! =====================")
+            torch.save(image, "weird_nan_values.pt"); 
+            exit()
  
 
 def validation(data_loader,model):

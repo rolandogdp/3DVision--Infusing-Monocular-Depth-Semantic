@@ -96,7 +96,7 @@ class depthDataset(Dataset):
             segmentation_mask = segmentation_mask_one_hot_encoded
         elif(my_method is Method.SEGMENTATIONMASKBOUNDARIES):
             segmentation_mask = self.convert_semantic_label_to_rgb(segmentation_mask)
-            segmentation_mask = self.cannyedgedetection(segmentation_mask)
+            segmentation_mask = self.canny_edge_detection(segmentation_mask)
             if(self.transform_segmentation_mask):
                 for transform in self.transform_segmentation_mask[0:-1]: #dont normalize
                     segmentation_mask = transform(segmentation_mask)
@@ -105,7 +105,7 @@ class depthDataset(Dataset):
         if(my_method is not Method.NOSEGMENTATIONCUES):
             image = torch.concat([segmentation_mask, image], axis=0)
 
-        print(image.shape)
+        #print(image.shape)
         sample = {'image': image, 'depth': depth}
 
         return sample
