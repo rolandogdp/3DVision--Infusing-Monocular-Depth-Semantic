@@ -559,32 +559,35 @@ def download_files_me(url_list,max_file_size_GB,download_path="downloads/", max_
                     files = [depth_file_name, segmentation_file_name, tone_map_name]
 
                     csv_files = [];
-                    for file_name in files:
-                        path = os.path.join(download_path, file_name)
-                        if_file_exists = os.path.isfile(path)
-                        if not if_file_exists:
-                            try:
-                                res = z.extract(file_name, download_path)
-                                #downloaded_size+=os.path.getsize(path)
-                                print(res)
-                                """
-                                if downloaded_size >= max_file_size_bytes:
+                    try:
+                        for file_name in files:
+                            path = os.path.join(download_path, file_name)
+                            if_file_exists = os.path.isfile(path)
+                            if not if_file_exists:
+                                try:
+                                    res = z.extract(file_name, download_path)
+                                    #downloaded_size+=os.path.getsize(path)
+                                    print(res)
+                                    """
+                                    if downloaded_size >= max_file_size_bytes:
 
-                                    print(f"Maximum download size reached: {downloaded_size/(10**9)} / {max_file_size_bytes/(10**9)}")
+                                        print(f"Maximum download size reached: {downloaded_size/(10**9)} / {max_file_size_bytes/(10**9)}")
 
-                                    return 1
-                                """
-                                csv_files.append(file_name);
-                            except KeyError:
-                                break
+                                        return 1
+                                    """
+                                    csv_files.append(file_name);
+                                except KeyError:
+                                    break
 
-                    if(len(csv_files) == len(files)):
-                        if(index % 5 == 0):
-                            validation_data.append(csv_files);
-                        elif(index % 6 == 0):
-                            test_data.append(csv_files);
-                        else:
-                            train_data.append(csv_files);
+                        if(len(csv_files) == len(files)):
+                            if(index % 5 == 0):
+                                validation_data.append(csv_files);
+                            elif(index % 6 == 0):
+                                test_data.append(csv_files);
+                            else:
+                                train_data.append(csv_files);
+                    except zipfile.BadZipFile:
+                        continue
         except KeyboardInterrupt:
             break;
 
