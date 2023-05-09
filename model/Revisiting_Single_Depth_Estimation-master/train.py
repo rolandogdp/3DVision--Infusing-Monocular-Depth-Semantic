@@ -132,6 +132,10 @@ def main():
             save_results(res_validation,filename_val)
             
             print("Saved validation data.")
+        if epoch % 2 == 0:
+            file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}-{epoch}.pth.tar"
+            print("Saving checkpoint to:", file)
+            save_checkpoint({'state_dict': model.state_dict()},file)
         
             
             
@@ -152,7 +156,7 @@ def main():
     print(f"TRAINED FOR:{end_time-start_time} ")
     
 
-    file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}.pth.tar"
+    file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}-final.pth.tar"
     print("Saving checkpoint to:", file)
     save_checkpoint({'state_dict': model.state_dict()},file)
 
