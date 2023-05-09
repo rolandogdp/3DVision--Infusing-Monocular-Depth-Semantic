@@ -50,6 +50,7 @@ class depthDataset(Dataset):
     def __getitem__(self, idx):
         image_name = self.absolute_downloads_path + self.frame["ToneMapped"][idx]
         depth_name = self.absolute_downloads_path + self.frame["Depth"][idx]
+        # print("Depthname:",depth_name)
         if(my_method is not Method.NOSEGMENTATIONCUES):
             segmentation_mask_name = self.absolute_downloads_path + self.frame["Segmentation"][idx]
 
@@ -140,19 +141,18 @@ def getTrainingData(batch_size=64, csv_filename="image_files.csv"):
                                         transform_rgb_image=transforms.Compose([
                                             Scale(240),
                                             RandomHorizontalFlip(),
-                                            RandomRotate(5),
+                                            # RandomRotate(5),
                                             CenterCrop([304, 228], [304, 228]),
                                             ToTensor(),
                                             Normalize(mean,
                                                       std)
                                         ]), transform_depth_image=transforms.Compose([Scale(240, Image.NEAREST),
                                                                                       RandomHorizontalFlip(),
-                                                                                      RandomRotate(5),
                                                                                       CenterCrop([304,228],
                                                                                                  [152, 114]), ToTensor()]), transform_segmentation_mask=transform_segmentation_mask)
 
     dataloader_training = DataLoader(transformed_training, batch_size,
-                                     shuffle=True, num_workers=2, pin_memory=False)
+                                     shuffle=False, num_workers=2, pin_memory=False)
 
     return dataloader_training
 

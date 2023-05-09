@@ -88,15 +88,27 @@ def main():
     # print("GPU VRAM optimizer:",torch.cuda.mem_get_info())
     print("Starting to load the data.")
     train_loader = loaddata.getTrainingData(batch_size,"train_data.csv")
-    #test_loader = loaddata.getTestingData(1,"train_data.csv")
+    
     test_loader = loaddata.getTestingData(1,"test_data.csv")
     print("DataLoader finished loading")
-    # print("BatchSize:",batch_size)
-    # print("GPU VRAM 0:",torch.cuda.mem_get_info())
+    
     training_depth_res = []
     validation_depth_res = []
     filename_train = f"train-{filename_date}"
     filename_val = f"validation-{filename_date}"
+    keys = ["loss_depth","loss_dx","loss_dy","loss_normal","loss" ]
+    try:
+        p = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/results/'}"
+        with open(p+filename_train+"-results.csv",mode="w", newline='') as file:
+            w = csv.DictWriter(file, keys)
+            w.writeheader()
+        
+        with open(p+filename_val+"-results.csv",mode="w", newline='') as file:
+            w = csv.DictWriter(file, keys)
+            w.writeheader()
+    except Exception as e:
+        print("Exception while trying to write headers, got:",str(e))
+
     
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
@@ -170,6 +182,8 @@ def train(train_loader, model, optimizer, epoch):
         # print("DOING ITERATION:",i)
         # print("GPU VRAM:",torch.cuda.mem_get_info())
         image, depth = sample_batched['image'], sample_batched['depth']
+        if depth.isnan().any():
+            print("="*30,"NAN IN INITIAL DEPTH")
         # print(f"depth:{depth}")
         depth = depth.to(device)
 
@@ -238,10 +252,16 @@ def train(train_loader, model, optimizer, epoch):
             'Loss {loss.val:.4f} ({loss.avg:.4f}) , loss_depth {loss_depth}, loss_normal {loss_normal}, loss_dx {loss_dx},  loss_dy {loss_dy}'
             .format(epoch, i+1, len(train_loader), batch_time=batch_time, loss=losses, loss_depth=loss_depth, loss_normal=loss_normal, loss_dx=loss_dx, loss_dy=loss_dy
                     ))
+        if i == 1:
+            torch.save(image, "good_image.pt"); 
+            torch.save(depth, "good_depth.pt"); 
         if loss.isnan().any():
             # exit()
             print("=====NAN VALUE IN LOSS !!!!! =====================")
             torch.save(image, "weird_nan_values.pt"); 
+            torch.save(depth, "weird_nan_depth.pt"); 
+            print("Number of nans:",num_nans)
+
             exit()
  
 
@@ -293,11 +313,11 @@ def validation(data_loader,model):
 
         loss = loss_depth + loss_normal + (loss_dx + loss_dy)
         
-        return {"output":output,"loss_depth" :loss_depth,"loss_dx":loss_dx,
-        "loss_dy":loss_dy,"loss_normal":loss_normal,"loss":loss }
+        return {"output":output,"loss_depth" :loss_depth.item(),"loss_dx":loss_dx.item(),
+        "loss_dy":loss_dy.item(),"loss_normal":loss_normal.item(),"loss":loss.item() }
 
 def save_results(results:dict,filename:str=""):
-    global csv_header_created
+    
     # We want for training to save all epochs and outputs. 
     path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +"../outputs/results/"
 
@@ -305,9 +325,6 @@ def save_results(results:dict,filename:str=""):
 
     with open(results_filename,mode="a") as file:
         w = csv.DictWriter(file, results.keys())
-        if not csv_header_created:
-            w.writeheader()
-            csv_header_created = True
         w.writerow(results)
 
 
@@ -337,8 +354,8 @@ class AverageMeter(object):
 
 
 def save_checkpoint(state, filename='checkpointapple.pth.tar'):
-    now = datetime.datetime.now()
-    filename = f"./checkpointapple-{str(now.strftime('%m-%d-%Y-%H-%M-%S'))}.pth.tar"
+    # now = datetime.datetime.now()
+    # filename = f"./checkpointapple-{str(now.strftime('%m-%d-%Y-%H-%M-%S'))}.pth.tar"
     torch.save(state, filename)
 
 
