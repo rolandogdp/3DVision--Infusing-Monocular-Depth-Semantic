@@ -17,7 +17,9 @@ from models import modules, net, resnet, densenet, senet
 from enum import Enum
 from set_method import MyMethod, Method
 
-csv_header_created = False
+torch.cuda.seed()
+
+csv_header_created = (False,False,False)
 
 parser = argparse.ArgumentParser(description='PyTorch DenseNet Training')
 parser.add_argument('--epochs', default=1, type=int,
@@ -93,6 +95,9 @@ def main():
     # print("GPU VRAM 0:",torch.cuda.mem_get_info())
     training_depth_res = []
     validation_depth_res = []
+    filename_train = f"train-{filename_date}"
+    filename_val = f"validation-{filename_date}"
+    
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
         start_time_loop = time.time()
@@ -103,7 +108,7 @@ def main():
         res_training = validation(data_loader=train_loader,model=model)
         training_depth_res.append(res_training["output"])
         res_training.pop("output")
-        save_results(res_training,True,filename_date)
+        save_results(res_training,filename_train)
 
         
         print("Saved training results")
@@ -112,7 +117,7 @@ def main():
             validation_depth_res.append(res_validation["output"])
             res_validation.pop("output")
             
-            save_results(res_validation,False,filename_date)
+            save_results(res_validation,filename_val)
             
             print("Saved validation data.")
         
@@ -122,8 +127,7 @@ def main():
     path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +"../outputs/results/"
     
     
-    filename_train = f"train-{filename_date}"
-    filename_val = f"validation-{filename_date}"
+    
 
     # Write the outputs
     file=path+filename_train+"-depth.pt"
@@ -232,7 +236,7 @@ def train(train_loader, model, optimizer, epoch):
 
         print('Epoch: [{0}][{1}/{2}]\t'
             'Time {batch_time.val:.3f} ({batch_time.sum:.3f})\t'
-            'Loss {loss.val:.4f} ({loss.avg:.4f})'
+            'Loss {loss.val:.4f} ({loss.avg:.4f}) , loss_depth {loss_depth}+ loss_normal {loss_normal}+ (loss_dx + loss_dy){loss_dx} {loss_dy}'
             .format(epoch, i+1, len(train_loader), batch_time=batch_time, loss=losses))
         if loss.isnan().any():
             # exit()
@@ -290,13 +294,12 @@ def validation(data_loader,model):
         return {"output":output,"loss_depth" :loss_depth,"loss_dx":loss_dx,
         "loss_dy":loss_dy,"loss_normal":loss_normal,"loss":loss }
 
-def save_results(results:dict,trainingQ=True,filename_date=""):
+def save_results(results:dict,filename:str=""):
     global csv_header_created
     # We want for training to save all epochs and outputs. 
     path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +"../outputs/results/"
     
-    if trainingQ:filename = f"train-{filename_date}"
-    else: filename = f"validation-{filename_date}"
+    
 
     
     results_filename = path+filename+"-results.csv"
@@ -309,6 +312,8 @@ def save_results(results:dict,trainingQ=True,filename_date=""):
             w.writeheader()
             csv_header_created = True
         w.writerow(results)
+
+
 
 def adjust_learning_rate(optimizer, epoch):
     lr = args.lr * (0.1 ** (epoch // 5))
