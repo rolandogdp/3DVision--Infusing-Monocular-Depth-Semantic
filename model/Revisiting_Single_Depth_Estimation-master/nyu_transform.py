@@ -121,7 +121,7 @@ class Scale(object):
 class CenterCrop(object):
     def __init__(self, size_image, resizing_size): #resizing size was size depth
         self.size_image = size_image
-        self.size_depth = resizing_size
+        self.resizing_size = resizing_size
 
     def __call__(self, image):
         #image, depth = sample['image'], sample['depth']
@@ -334,7 +334,7 @@ class CannyEdgeDetection(object):
     def edge_detection(self, image):
         if (torch.cuda.is_available()):
             get_edge = sobel.Sobel().cuda()
-        else
+        else:
             get_edge = sobel.Sobel()
 
         edge_xy = get_edge(image)

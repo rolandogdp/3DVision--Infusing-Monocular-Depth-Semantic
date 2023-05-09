@@ -5,7 +5,10 @@ import torch.nn.functional as F
 import torch
 import numpy as np
 
-import ../set_method
+import os
+import sys
+
+from set_method import MyMethod, Method
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            'resnet152']
@@ -104,11 +107,11 @@ class ResNet(nn.Module):
         super(ResNet, self).__init__()
 
         num_input_channels = 3 #default
-        if(my_method == Method.SEGMENTATIONMASKGRAYSCALE):
+        if(MyMethod.my_method == Method.SEGMENTATIONMASKGRAYSCALE):
             num_input_channels =  4
-        elif(my_method == Method.SEGMENTATIONMASKBOUNDARIES):
+        elif(MyMethod.my_method == Method.SEGMENTATIONMASKBOUNDARIES):
             num_input_channels = 5
-        elif(my_method == Method.SEGMENTATIONMASKONEHOT):
+        elif(MyMethod.my_method == Method.SEGMENTATIONMASKONEHOT):
             num_input_channels = 43  #TODO: Figure out the number of classes to be used
         else:
             num_input_channels = 3

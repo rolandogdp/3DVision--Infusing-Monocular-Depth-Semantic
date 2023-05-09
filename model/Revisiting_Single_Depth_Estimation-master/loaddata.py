@@ -8,17 +8,23 @@ import random
 import os
 import sys
 
-torch.manual_seed = 240
+torch.manual_seed(240)
 
 module_path =  os.path.abspath(os.path.dirname(os.path.realpath(__file__)))+"/../../"
 if module_path not in sys.path:
     sys.path.append(module_path)
-# print("HERE2:",sys.path)
+
+module_path = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))+"/../"
+if module_path not in sys.path:
+    sys.path.append(module_path)
+
 from data.get_image_stats import *
 from data.convert_distance_to_depth import *
 from set_method import *
 from nyu_transform import *
 import h5py
+
+import set_method
 
 def remap_data(np_array,wanted_max=255):
     return (np_array/np_array.max(axis=(0,1))*wanted_max).astype(np.uint8)
@@ -32,17 +38,17 @@ class depthDataset(Dataset):
         self.transform_depth = transform_depth_image
         self.transform_segmentation_mask = transform_segmentation_mask
         self.absolute_downloads_path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']
-        if(my_method == Method.SEGMENTATIONMASKGRAYSCALE):
+        if(MyMethod.my_method == Method.SEGMENTATIONMASKGRAYSCALE):
             self.grayscale_conversion = Grayscale()
             self.convert_semantic_label_to_rgb = ConvertSemanticLabelsToRGB
-        if(my_method == Method.SEGMENTATIONMASKBOUNDARIES):
+        if(MyMethod.my_method == Method.SEGMENTATIONMASKBOUNDARIES):
             self.canny_edge_detection = CannyEdgeDetection(0.01)
             self.convert_semantic_label_to_rgb = ConvertSemanticLabelsToRGB
 
     def __getitem__(self, idx):
         image_name = self.absolute_downloads_path + self.frame["ToneMapped"][idx]
         depth_name = self.absolute_downloads_path + self.frame["Depth"][idx]
-        if(my_method != Method.NOSEGMENTATIONCUES):
+        if(MyMethod.my_method != Method.NOSEGMENTATIONCUES):
             segmentation_mask_name = self.absolute_downloads_path + self.frame["Segmentation"][idx]
 
         # Read file
@@ -68,7 +74,7 @@ class depthDataset(Dataset):
         if self.transform_depth:
             depth = self.transform_depth(depth)
 
-        if(my_method != Method.NOSEGMENTATIONCUES):
+        if(MyMethod.my_method != Method.NOSEGMENTATIONCUES):
             if ".hdf5" in segmentation_mask_name:
                 segmentation_mask_h5py = h5py.File(segmentation_mask_name, "r")["dataset"][()]
                 segmentation_mask = Image.fromarray(segmentation_mask_h5py)
@@ -77,17 +83,18 @@ class depthDataset(Dataset):
 
             #binary image also one hod encoded vector??
             #grayscale image normalized with mean and std from std images or segmentation masks?
-        if(my_method == Method.SEGMENTATIONMASKGRAYSCALE and self.transform_segmentation_mask):
+        if(MyMethod.my_method == Method.SEGMENTATIONMASKGRAYSCALE and self.transform_segmentation_mask):
             segmentation_mask = self.convert_semantic_label_to_rgb(segmentation_mask)
             segmentation_mask = self.grayscale_conversion(segmentation_mask)[0,:,:]
             segmentation_mask = self.transform_segmentation_mask(segmentation_mask)
-        elif(my_method == Method.SEGMENTATIONMASKONEHOT and self.transform_segmentation_mask):
+            print("am i in here")
+        elif(MyMethod.my_method == Method.SEGMENTATIONMASKONEHOT and self.transform_segmentation_mask):
             for transform in self.transform_segmentation_mask[0:-1]: #dont normalize
                 segmentation_mask = transform(segmentation_mask)
             #convert to one-hot-encoded vector
             segmentation_mask_one_hot_encoded = torch.concat([segmentation_mask[segmentation_mask == label] for label in range(1,40)], axis=0)
             segmentation_mask = segmentation_mask_one_hot_encoded
-        elif(my_method == Method.SEGMENTATIONMASKBOUNDARIES):
+        elif(MyMethod.my_method == Method.SEGMENTATIONMASKBOUNDARIES):
             segmentation_mask = self.convert_semantic_label_to_rgb(segmentation_mask)
             segmentation_mask = self.cannyedgedetection(segmentation_mask)
             if(self.transform_segmentation_mask):
@@ -95,10 +102,11 @@ class depthDataset(Dataset):
                     segmentation_mask = transform(segmentation_mask)
             segmentation_mask = torch.concat([segmentation_mask[segmentation_mask == 0].int, segmentation_mask[segmentation_mask == 1].int], axis=0)
 
-        if(my_method != Method.NOSEGMENTATIONCUES):
+        if(MyMethod.my_method != Method.NOSEGMENTATIONCUES):
+            print("am i in here")
             image = torch.concat([segmentation_mask, image], axis=0)
 
-
+        print(image.shape)
         sample = {'image': image, 'depth': depth}
 
         return sample
@@ -121,7 +129,7 @@ def getTrainingData(batch_size=64, csv_filename="image_files.csv"):
 
     mean, std = get_dataset_stats(csv_filename=filename)  # TODO: only extracts image stats of particular subset but not of the entire dataset
 
-    if(my_method != Method.NOSEGMENTATIONCUES):
+    if(MyMethod.my_method != Method.NOSEGMENTATIONCUES):
         transform_segmentation_mask = transforms.Compose([Scale(240, Image.NEAREST), RandomHorizontalFlip, RandomRotate(5), CenterCrop([304,228], [304, 228]), ToTensor(), Normalize(mean, std)])
     else:
         transform_segmentation_mask = None
@@ -166,7 +174,7 @@ def getTestingData(batch_size=64, csv_filename="images_files.csv"):
 
     mean, std = get_dataset_stats(csv_filename=filename) #TODO: only extracts image stats of particular subset but not of the entire dataset
 
-    if (my_method != Method.NOSEGMENTATIONCUES):
+    if (MyMethod.my_method != Method.NOSEGMENTATIONCUES):
         transform_segmentation_mask = transforms.Compose(
             [Scale(240, Image.NEAREST), RandomHorizontalFlip, RandomRotate(5), CenterCrop([304, 228], [304, 228]),
              ToTensor(), Normalize(mean, std)])

@@ -15,7 +15,7 @@ import datetime
 import os
 from models import modules, net, resnet, densenet, senet
 from enum import Enum
-import set_method
+from set_method import MyMethod, Method
 
 csv_header_created = False
 
@@ -30,14 +30,16 @@ parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
 parser.add_argument('--weight-decay', '--wd', default=1e-4, type=float,
                     help='weight decay (default: 1e-4)')
 
-parser.add_argument('--method', default=Method.NOSEGMENTATIONCUES, type=Enum, help="specify in which format the segmentation maps should be used as an additional input, options NOSEGMENTATIONCUES,  SEGMENTATIONMASKGRAYSCALE, SEGMENTATIONMASKBOUNDARIES, SEGMENTATIONMASKONEHOT")
+parser.add_argument('--method', default=0, type=int, help="specify in which format the segmentation maps should be used as an additional input, options NOSEGMENTATIONCUES=0,  SEGMENTATIONMASKGRAYSCALE=1, SEGMENTATIONMASKBOUNDARIES=2, SEGMENTATIONMASKONEHOT=3")
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 def define_model(is_resnet, is_densenet, is_senet):
-    if my_method != Method.NOSEGMENTATIONCUES:
+    if MyMethod.my_method != Method.NOSEGMENTATIONCUES:
         pretrained = False
+    else:
+        pretrained = True
     if is_resnet:
         original_model = resnet.resnet50(pretrained=pretrained)
         Encoder = modules.E_resnet(original_model) 
@@ -57,7 +59,8 @@ def main():
     # print("GPU VRAM MAIN:",torch.cuda.mem_get_info())
     global args
     args = parser.parse_args()
-    set_method.init(args.method) #initialize the desired method
+    MyMethod.set_method(args.method) #initialize the desired method
+    print("What is the value of my_method after initializing: ", MyMethod.my_method)
     model = define_model(is_resnet=True, is_densenet=False, is_senet=False)
     # print("GPU VRAM model defined:",torch.cuda.mem_get_info())
     now = datetime.datetime.now()
@@ -83,7 +86,7 @@ def main():
     # print("GPU VRAM optimizer:",torch.cuda.mem_get_info())
     print("Starting to load the data.")
     train_loader = loaddata.getTrainingData(batch_size,"train_data.csv")
-    test_loader = loaddata.getTestingData(1,"train_data.csv")
+    #test_loader = loaddata.getTestingData(1,"train_data.csv")
     test_loader = loaddata.getTestingData(1,"test_data.csv")
     print("DataLoader finished loading")
     # print("BatchSize:",batch_size)
