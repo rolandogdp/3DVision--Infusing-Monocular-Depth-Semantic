@@ -15,7 +15,7 @@ import datetime
 import os
 from models import modules, net, resnet, densenet, senet
 from enum import Enum
-from set_method import MyMethod, Method
+from set_method import my_method, Method
 
 torch.cuda.seed()
 
@@ -32,13 +32,12 @@ parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
 parser.add_argument('--weight-decay', '--wd', default=1e-4, type=float,
                     help='weight decay (default: 1e-4)')
 
-parser.add_argument('--method', default=0, type=int, help="specify in which format the segmentation maps should be used as an additional input, options NOSEGMENTATIONCUES=0,  SEGMENTATIONMASKGRAYSCALE=1, SEGMENTATIONMASKBOUNDARIES=2, SEGMENTATIONMASKONEHOT=3")
+#parser.add_argument('--method', default=0, type=int, help="specify in which format the segmentation maps should be used as an additional input, options NOSEGMENTATIONCUES=0,  SEGMENTATIONMASKGRAYSCALE=1, SEGMENTATIONMASKBOUNDARIES=2, SEGMENTATIONMASKONEHOT=3")
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-
 def define_model(is_resnet, is_densenet, is_senet):
-    if MyMethod.my_method != Method.NOSEGMENTATIONCUES:
+    if my_method is not Method.NOSEGMENTATIONCUES:
         pretrained = False
     else:
         pretrained = True
@@ -57,12 +56,13 @@ def define_model(is_resnet, is_densenet, is_senet):
 
     return model
 
+
 def main():
     # print("GPU VRAM MAIN:",torch.cuda.mem_get_info())
     global args
     args = parser.parse_args()
-    MyMethod.set_method(args.method) #initialize the desired method
-    print("What is the value of my_method after initializing: ", MyMethod.my_method)
+    #set_method.mymethod(args.method) #initialize the desired method
+    print("What is the value of my_method after initializing: ", my_method)
     model = define_model(is_resnet=True, is_densenet=False, is_senet=False)
     # print("GPU VRAM model defined:",torch.cuda.mem_get_info())
     now = datetime.datetime.now()
@@ -236,8 +236,9 @@ def train(train_loader, model, optimizer, epoch):
 
         print('Epoch: [{0}][{1}/{2}]\t'
             'Time {batch_time.val:.3f} ({batch_time.sum:.3f})\t'
-            'Loss {loss.val:.4f} ({loss.avg:.4f}) , loss_depth {loss_depth}+ loss_normal {loss_normal}+ (loss_dx + loss_dy){loss_dx} {loss_dy}'
-            .format(epoch, i+1, len(train_loader), batch_time=batch_time, loss=losses))
+            'Loss {loss.val:.4f} ({loss.avg:.4f}) , loss_depth {loss_depth}, loss_normal {loss_normal}, loss_dx {loss_dx},  loss_dy {loss_dy}'
+            .format(epoch, i+1, len(train_loader), batch_time=batch_time, loss=losses, loss_depth=loss_depth, loss_normal=loss_normal, loss_dx=loss_dx, loss_dy=loss_dy
+                    ))
         if loss.isnan().any():
             # exit()
             print("=====NAN VALUE IN LOSS !!!!! =====================")
@@ -298,14 +299,9 @@ def save_results(results:dict,filename:str=""):
     global csv_header_created
     # We want for training to save all epochs and outputs. 
     path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +"../outputs/results/"
-    
-    
 
-    
     results_filename = path+filename+"-results.csv"
-    
-        
-    
+
     with open(results_filename,mode="a") as file:
         w = csv.DictWriter(file, results.keys())
         if not csv_header_created:

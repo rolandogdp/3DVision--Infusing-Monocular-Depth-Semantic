@@ -15,11 +15,16 @@ class Method(Enum):
     SEGMENTATIONMASKBOUNDARIES = 2
     SEGMENTATIONMASKONEHOT = 3
 
+"""
 class MyMethod:
-
     my_method = Method.NOSEGMENTATIONCUES
     @staticmethod
     def set_method(method_index):
         MyMethod.my_method = Method(method_index)
+        
+"""
 
+
+global my_method
+my_method = Method.SEGMENTATIONMASKBOUNDARIES
 

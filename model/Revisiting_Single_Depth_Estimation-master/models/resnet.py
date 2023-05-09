@@ -8,7 +8,11 @@ import numpy as np
 import os
 import sys
 
-from set_method import MyMethod, Method
+module_path =  os.path.abspath(os.path.dirname(os.path.realpath(__file__)))+"/../"
+if module_path not in sys.path:
+    sys.path.append(module_path)
+
+from set_method import my_method, Method
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            'resnet152']
@@ -107,11 +111,11 @@ class ResNet(nn.Module):
         super(ResNet, self).__init__()
 
         num_input_channels = 3 #default
-        if(MyMethod.my_method == Method.SEGMENTATIONMASKGRAYSCALE):
+        if(my_method is Method.SEGMENTATIONMASKGRAYSCALE):
             num_input_channels =  4
-        elif(MyMethod.my_method == Method.SEGMENTATIONMASKBOUNDARIES):
+        elif(my_method is Method.SEGMENTATIONMASKBOUNDARIES):
             num_input_channels = 5
-        elif(MyMethod.my_method == Method.SEGMENTATIONMASKONEHOT):
+        elif(my_method is Method.SEGMENTATIONMASKONEHOT):
             num_input_channels = 43  #TODO: Figure out the number of classes to be used
         else:
             num_input_channels = 3

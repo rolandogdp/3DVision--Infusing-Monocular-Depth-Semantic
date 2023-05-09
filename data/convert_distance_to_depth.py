@@ -26,13 +26,9 @@ class ConvertSemanticLabelsToRGB(object):
 
     def convert_semantic_label_to_rgb(self, image):
         rgb_image = np.empty(shape=(image.size[0], image.size[1], 3), dtype=np.uint8)
-        print("SIZE:",image.size)
         mask = (image == -1)
         rgb_image[mask, :] = [255, 255, 255]  # white
-        print(f"rgbimage shape bef: {rgb_image.shape}")
         for label in range(1, 40):
             rgb_image[image == label] = self.mappings.iloc[label - 1]
-        print(f"rgbimage shape af: {rgb_image.shape}")
-        print(f"min:{rgb_image.min()} , max:{rgb_image.max()}")
 
         return Image.fromarray(rgb_image) 
