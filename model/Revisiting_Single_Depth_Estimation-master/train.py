@@ -89,8 +89,8 @@ def main():
     
     training_depth_res = []
     validation_depth_res = []
-    filename_train = f"train-{filename_date}"
-    filename_val = f"validation-{filename_date}"
+    filename_train = f"train-{filename_date}-{my_method}"
+    filename_val = f"validation-{filename_date}-{my_method}"
     keys = ["loss_depth","loss_dx","loss_dy","loss_normal","loss" ]
     try:
         p = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/results/'}"
@@ -128,7 +128,7 @@ def main():
             
             print("Saved validation data.")
         if epoch % 2 == 0:
-            file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}-{epoch}.pth.tar"
+            file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}-{epoch}--{my_method}.pth.tar"
             print("Saving checkpoint to:", file)
             save_checkpoint({'state_dict': model.state_dict()},file)
         

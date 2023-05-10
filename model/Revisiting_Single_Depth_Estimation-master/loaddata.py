@@ -143,7 +143,7 @@ def getTrainingData(batch_size=64, csv_filename="image_files.csv"):
                                                                                                  [152, 114]), ToTensor()]), transform_segmentation_mask=transform_segmentation_mask)
 
     dataloader_training = DataLoader(transformed_training, batch_size,
-                                     shuffle=True, num_workers=2, pin_memory=False)
+                                     shuffle=True, num_workers=5, pin_memory=False)
 
     return dataloader_training
 
@@ -204,6 +204,6 @@ def getValidationData(batch_size=64, csv_filename="image_files.csv"):
                                                                                                  [152, 114]), ToTensor(is_test=True)]), transform_segmentation_mask=transform_segmentation_mask)
 
     dataloader_training = DataLoader(transformed_training, batch_size,
-                                     shuffle=True, num_workers=1, pin_memory=False)
+                                     shuffle=True, num_workers=5, pin_memory=False)
 
     return dataloader_training
