@@ -331,11 +331,14 @@ class CannyEdgeDetection(object):
         self.threshold = threshold
         if (torch.cuda.is_available()):
             self.get_edge = sobel.Sobel(3).cuda()
+            self.device = "gpu"
         else:
             self.get_edge = sobel.Sobel(3)
+            self.device = "cpu"
+
 
     def __call__(self, image):
-        image = self.edge_detection(image)
+        image = self.edge_detection(image.to(self.device))
         return image
 
     def edge_detection(self, image):
