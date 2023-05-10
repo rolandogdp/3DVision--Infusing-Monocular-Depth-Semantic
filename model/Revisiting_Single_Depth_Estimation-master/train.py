@@ -39,10 +39,7 @@ parser.add_argument('--batch', default=2, type=int,
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def define_model(is_resnet, is_densenet, is_senet):
-    if my_method is not Method.NOSEGMENTATIONCUES:
-        pretrained = False
-    else:
-        pretrained = True
+    pretrained = False
     if is_resnet:
         original_model = resnet.resnet50(pretrained=pretrained)
         Encoder = modules.E_resnet(original_model) 
