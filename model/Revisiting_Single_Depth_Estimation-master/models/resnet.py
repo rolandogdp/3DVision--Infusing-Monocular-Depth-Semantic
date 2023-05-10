@@ -116,7 +116,7 @@ class ResNet(nn.Module):
         elif(my_method is Method.SEGMENTATIONMASKBOUNDARIES):
             num_input_channels = 5
         elif(my_method is Method.SEGMENTATIONMASKONEHOT):
-            num_input_channels = 43  #TODO: Figure out the number of classes to be used
+            num_input_channels = 42  #TODO: Figure out the number of classes to be used
         else:
             num_input_channels = 3
 

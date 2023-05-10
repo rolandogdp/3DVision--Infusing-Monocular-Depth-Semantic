@@ -92,7 +92,7 @@ class depthDataset(Dataset):
             if self.transform_segmentation_mask:
                 segmentation_mask = self.transform_segmentation_mask(segmentation_mask)
             #convert to one-hot-encoded vector
-            segmentation_mask_one_hot_encoded = torch.concat([segmentation_mask[segmentation_mask == label] for label in range(1,40)], axis=0)
+            segmentation_mask_one_hot_encoded = torch.concat([torch.where(segmentation_mask == 1, segmentation_mask, 0) for label in range(1,40)], axis=0)
             segmentation_mask = segmentation_mask_one_hot_encoded
         elif(my_method is Method.SEGMENTATIONMASKBOUNDARIES):
             segmentation_mask = self.convert_semantic_label_to_rgb(segmentation_mask)
@@ -103,6 +103,8 @@ class depthDataset(Dataset):
             print("maximum segmentation mask: ", segmentation_mask.max())
             mask_ones = torch.where(segmentation_mask == True, segmentation_mask, 0).int()
             segmentation_mask = torch.stack([mask_ones, ~mask_ones], axis=0)
+            print("shape segmentation mask: ", segmentation_mask.shape)
+
         if(my_method is not Method.NOSEGMENTATIONCUES):
             image = torch.concat([segmentation_mask, image], axis=0)
 
