@@ -32,6 +32,8 @@ parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
 parser.add_argument('--weight-decay', '--wd', default=1e-4, type=float,
                     help='weight decay (default: 1e-4)')
 
+parser.add_argument('--batch', default=2, type=int,
+                    help='sets the batch size for training')
 #parser.add_argument('--method', default=0, type=int, help="specify in which format the segmentation maps should be used as an additional input, options NOSEGMENTATIONCUES=0,  SEGMENTATIONMASKGRAYSCALE=1, SEGMENTATIONMASKBOUNDARIES=2, SEGMENTATIONMASKONEHOT=3")
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -71,16 +73,12 @@ def main():
     if not torch.cuda.is_available():
         model.cpu()
         batch_size = 2
-    elif torch.cuda.device_count() == 8:
-        model = torch.nn.DataParallel(model, device_ids=[0, 1, 2, 3, 4, 5, 6, 7]).cuda()
-        batch_size = 64
-    elif torch.cuda.device_count() == 4:
-        model = torch.nn.DataParallel(model, device_ids=[0, 1, 2, 3]).cuda()
-        batch_size = 32
+        print("GPU NOT DETECTED, RUNNING ON CPU")
     else:
+        print("CUDA DETECTED, RUNNING ON GPU !")
         model = model.cuda()
         # batch_size = 4
-        batch_size = 2
+        batch_size = args.batch
     # print("GPU VRAM ifs:",torch.cuda.mem_get_info())
 
     cudnn.benchmark = True
@@ -100,7 +98,7 @@ def main():
     try:
         p = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/results/'}"
         with open(p+filename_train+"-results.csv",mode="w", newline='') as file:
-            w = csv.DictWriter(file, keys)
+            w = csv.D2ictWriter(file, keys)
             w.writeheader()
         
         with open(p+filename_val+"-results.csv",mode="w", newline='') as file:

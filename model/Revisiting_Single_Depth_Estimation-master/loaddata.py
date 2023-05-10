@@ -115,23 +115,16 @@ class depthDataset(Dataset):
         return len(self.frame)
 
 def getTrainingData(batch_size=64, csv_filename="image_files.csv"):
-    __imagenet_pca = {
-        'eigval': torch.Tensor([0.2175, 0.0188, 0.0045]),
-        'eigvec': torch.Tensor([
-            [-0.5675,  0.7192,  0.4009],
-            [-0.5808, -0.0045, -0.8140],
-            [-0.5836, -0.6948,  0.4203],
-        ])
-    }
-
+    
     print("My method in getTrainingData is: ", my_method)
     filename = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']  + csv_filename
 
-    mean, std = get_dataset_stats(csv_filename=filename)  # TODO: only extracts image stats of particular subset but not of the entire dataset
+    # mean, std = get_dataset_stats(csv_filename=filename)  # TODO: only extracts image stats of particular subset but not of the entire dataset
+    mean,std = [0.53277088, 0.49348648, 0.45927282],[0.238986 ,  0.23546355 ,0.24486044] 
 
     if(my_method is not Method.NOSEGMENTATIONCUES):
         print("am i constructing a transformation??")
-        transform_segmentation_mask = transforms.Compose([Scale(240, Image.NEAREST), RandomHorizontalFlip(), RandomRotate(5), CenterCrop([304,228], [304, 228]), ToTensor(), Normalize(mean, std)])
+        transform_segmentation_mask = transforms.Compose([Scale(240, Image.NEAREST),CenterCrop([304,228], [304, 228]), ToTensor()])
     else:
         transform_segmentation_mask = None
 
@@ -140,14 +133,11 @@ def getTrainingData(batch_size=64, csv_filename="image_files.csv"):
     transformed_training = depthDataset(csv_file=filename,
                                         transform_rgb_image=transforms.Compose([
                                             Scale(240),
-                                            RandomHorizontalFlip(),
-                                            # RandomRotate(5),
                                             CenterCrop([304, 228], [304, 228]),
                                             ToTensor(),
                                             Normalize(mean,
                                                       std)
                                         ]), transform_depth_image=transforms.Compose([Scale(240, Image.NEAREST),
-                                                                                      RandomHorizontalFlip(),
                                                                                       CenterCrop([304,228],
                                                                                                  [152, 114]), ToTensor()]), transform_segmentation_mask=transform_segmentation_mask)
 
@@ -159,22 +149,18 @@ def getTrainingData(batch_size=64, csv_filename="image_files.csv"):
 
 def getTestingData(batch_size=64, csv_filename="images_files.csv"):
 
-    """
-    image stats for nyu2 dataset
-    __imagenet_stats = {'mean': [0.485, 0.456, 0.406],
-                        'std': [0.229, 0.224, 0.225]}
-    """
 
     filename = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] + csv_filename
 
     # print(filename)
 
-    mean, std = get_dataset_stats(csv_filename=filename) #TODO: only extracts image stats of particular subset but not of the entire dataset
+    # mean, std = get_dataset_stats(csv_filename=filename) #TODO: only extracts image stats of particular subset but not of the entire dataset
+    mean,std = [0.53277088, 0.49348648, 0.45927282],[0.238986 ,  0.23546355 ,0.24486044] 
 
     if (my_method is not Method.NOSEGMENTATIONCUES):
         transform_segmentation_mask = transforms.Compose(
-            [Scale(240, Image.NEAREST), RandomHorizontalFlip(), RandomRotate(5), CenterCrop([304, 228], [304, 228]),
-             ToTensor(), Normalize(mean, std)])
+            [Scale(240, Image.NEAREST),  CenterCrop([304, 228], [304, 228]),
+             ToTensor()])
     else:
         transform_segmentation_mask = None
 
@@ -184,9 +170,7 @@ def getTestingData(batch_size=64, csv_filename="images_files.csv"):
                                             CenterCrop([304, 228], [304, 228]),
                                             ToTensor(is_test=True),
                                             Normalize(mean,std)
-                                        ]), transform_depth_image=transforms.Compose([Scale(240, Image.NEAREST),
-                                                                                      RandomHorizontalFlip(),
-                                                                                      RandomRotate(5),
+                                        ]), transform_depth_image=transforms.Compose([Scale(240, Image.NEAREST),                                                                                      
                                                                                       CenterCrop([304,228],
                                                                                                  [152, 114]), ToTensor()]), transform_segmentation_mask=transform_segmentation_mask)
     
@@ -199,9 +183,10 @@ def getTestingData(batch_size=64, csv_filename="images_files.csv"):
 def getValidationData(batch_size=64, csv_filename="image_files.csv"):
     filename = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']  + csv_filename
 
+    mean,std = [0.53277088, 0.49348648, 0.45927282],[0.238986 ,  0.23546355 ,0.24486044] 
 
     if(my_method is not Method.NOSEGMENTATIONCUES):
-        transform_segmentation_mask = transforms.Compose([Scale(240, Image.NEAREST), RandomHorizontalFlip(), RandomRotate(5), CenterCrop([304,228], [304, 228]), ToTensor()])
+        transform_segmentation_mask = transforms.Compose([Scale(240, Image.NEAREST), CenterCrop([304,228], [304, 228]), ToTensor()])
     else:
         transform_segmentation_mask = None
 
@@ -211,13 +196,13 @@ def getValidationData(batch_size=64, csv_filename="image_files.csv"):
                                             Scale(240),
                                             CenterCrop([304, 228], [304, 228]),
                                             ToTensor(is_test=True),
-                                            # Normalize(mean,
-                                            #           std)
+                                            Normalize(mean,
+                                                      std)
                                         ]), transform_depth_image=transforms.Compose([Scale(240, Image.NEAREST),
                                                                                       CenterCrop([304,228],
                                                                                                  [152, 114]), ToTensor(is_test=True)]), transform_segmentation_mask=transform_segmentation_mask)
 
     dataloader_training = DataLoader(transformed_training, batch_size,
-                                     shuffle=True, num_workers=5, pin_memory=False)
+                                     shuffle=True, num_workers=1, pin_memory=False)
 
     return dataloader_training
