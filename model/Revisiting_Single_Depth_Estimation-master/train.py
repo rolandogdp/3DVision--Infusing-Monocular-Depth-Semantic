@@ -158,9 +158,9 @@ def train(train_loader, model, optimizer, epoch):
     # print("GPU VRAM before Sobel:",torch.cuda.mem_get_info())
 
     if(torch.cuda.is_available()):
-        get_gradient = sobel.Sobel().cuda()
+        get_gradient = sobel.Sobel(1).cuda()
     else:
-        get_gradient = sobel.Sobel().cpu()
+        get_gradient = sobel.Sobel(1).cpu()
 
     if(torch.cuda.is_available()):
         print("GPU VRAM After Sobel:",torch.cuda.mem_get_info())
@@ -174,8 +174,6 @@ def train(train_loader, model, optimizer, epoch):
         depth = depth.to(device)
 
         # print(f"AFTER TO DEVICE depth:{depth}")
-
-
         image = image.to(device)
 
         image = torch.autograd.Variable(image, requires_grad=False)
@@ -238,21 +236,19 @@ def train(train_loader, model, optimizer, epoch):
             'Loss {loss.val:.4f} ({loss.avg:.4f}) , loss_depth {loss_depth}, loss_normal {loss_normal}, loss_dx {loss_dx},  loss_dy {loss_dy}'
             .format(epoch, i+1, len(train_loader), batch_time=batch_time, loss=losses, loss_depth=loss_depth, loss_normal=loss_normal, loss_dx=loss_dx, loss_dy=loss_dy
                     ))
+
         if loss.isnan().any():
             # exit()
             print("=====NAN VALUE IN LOSS !!!!! =====================")
-            torch.save(image, "weird_nan_values.pt"); 
-            exit()
- 
 
 def validation(data_loader,model):
     cos = nn.CosineSimilarity(dim=1, eps=0)
     model.eval()
     with torch.no_grad():
         if(torch.cuda.is_available()):
-            get_gradient = sobel.Sobel().cuda()
+            get_gradient = sobel.Sobel(1).cuda()
         else:
-            get_gradient = sobel.Sobel().cpu()
+            get_gradient = sobel.Sobel(1).cpu()
 
         # predict model on first sample from loader 
         batch =  next(iter(data_loader)) 

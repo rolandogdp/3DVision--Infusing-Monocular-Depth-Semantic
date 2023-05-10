@@ -329,23 +329,23 @@ class CannyEdgeDetection(object):
 
     def __init__(self, threshold):
         self.threshold = threshold
+        if (torch.cuda.is_available()):
+            self.get_edge = sobel.Sobel(3).cuda()
+        else:
+            self.get_edge = sobel.Sobel(3)
 
     def __call__(self, image):
         image = self.edge_detection(image)
         return image
 
     def edge_detection(self, image):
-        if (torch.cuda.is_available()):
-            get_edge = sobel.Sobel().cuda()
-        else:
-            get_edge = sobel.Sobel()
-
-        edge_xy = get_edge(image)
+        edge_xy = self.get_edge(image)[0, : ,: ,:] #no batch
+        print("get edge did not work")
         edge_sobel = torch.pow(edge_xy[0, :, :], 2) + \
                      torch.pow(edge_xy[1, :, :], 2)
         edge_sobel = torch.sqrt(edge_sobel)
 
-        edge_sobel = (edge_sobel > self.thershold)
+        edge_sobel = (edge_sobel > self.threshold)
 
         return edge_sobel
 class MaskInvalidData(object):

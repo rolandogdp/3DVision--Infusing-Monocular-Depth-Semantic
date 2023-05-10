@@ -44,7 +44,7 @@ class depthDataset(Dataset):
             self.grayscale_conversion = Grayscale()
             self.convert_semantic_label_to_rgb = ConvertSemanticLabelsToRGB()
         if(my_method is Method.SEGMENTATIONMASKBOUNDARIES):
-            self.canny_edge_detection = CannyEdgeDetection(0.01)
+            self.canny_edge_detection = CannyEdgeDetection(0.1)
             self.convert_semantic_label_to_rgb = ConvertSemanticLabelsToRGB()
 
     def __getitem__(self, idx):
@@ -89,23 +89,25 @@ class depthDataset(Dataset):
                 segmentation_mask = self.transform_segmentation_mask(segmentation_mask)
         elif(my_method is Method.SEGMENTATIONMASKONEHOT):
             if self.transform_segmentation_mask:
-                for transform in self.transform_segmentation_mask[0:-1]: #dont normalize
+                for transform in self.transform_segmentation_mask.transforms[0:-1]: #dont normalize
                     segmentation_mask = transform(segmentation_mask)
             #convert to one-hot-encoded vector
             segmentation_mask_one_hot_encoded = torch.concat([segmentation_mask[segmentation_mask == label] for label in range(1,40)], axis=0)
             segmentation_mask = segmentation_mask_one_hot_encoded
         elif(my_method is Method.SEGMENTATIONMASKBOUNDARIES):
             segmentation_mask = self.convert_semantic_label_to_rgb(segmentation_mask)
-            segmentation_mask = self.canny_edge_detection(segmentation_mask)
             if(self.transform_segmentation_mask):
-                for transform in self.transform_segmentation_mask[0:-1]: #dont normalize
+                for transform in self.transform_segmentation_mask.transforms[0:-1]: #dont normalize
                     segmentation_mask = transform(segmentation_mask)
-            segmentation_mask = torch.concat([segmentation_mask[segmentation_mask == 0].int, segmentation_mask[segmentation_mask == 1].int], axis=0)
-
+            segmentation_mask = self.canny_edge_detection(segmentation_mask)
+            print(segmentation_mask.min())
+            print(segmentation_mask.max())
+            mask_ones = torch.where(segmentation_mask == True, segmentation_mask, 0).int()
+            segmentation_mask = torch.stack([mask_ones, ~mask_ones], axis=0)
         if(my_method is not Method.NOSEGMENTATIONCUES):
             image = torch.concat([segmentation_mask, image], axis=0)
 
-        #print(image.shape)
+        print(image.shape)
         sample = {'image': image, 'depth': depth}
 
         return sample
@@ -129,7 +131,6 @@ def getTrainingData(batch_size=64, csv_filename="image_files.csv"):
     mean, std = get_dataset_stats(csv_filename=filename)  # TODO: only extracts image stats of particular subset but not of the entire dataset
 
     if(my_method is not Method.NOSEGMENTATIONCUES):
-        print("am i constructing a transformation??")
         transform_segmentation_mask = transforms.Compose([Scale(240, Image.NEAREST), RandomHorizontalFlip(), RandomRotate(5), CenterCrop([304,228], [304, 228]), ToTensor(), Normalize(mean, std)])
     else:
         transform_segmentation_mask = None
@@ -152,7 +153,7 @@ def getTrainingData(batch_size=64, csv_filename="image_files.csv"):
                                                                                                  [152, 114]), ToTensor()]), transform_segmentation_mask=transform_segmentation_mask)
 
     dataloader_training = DataLoader(transformed_training, batch_size,
-                                     shuffle=True, num_workers=2, pin_memory=False)
+                                     shuffle=True, num_workers=1, pin_memory=False)
 
     return dataloader_training
 
