@@ -32,6 +32,8 @@ parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
 parser.add_argument('--weight-decay', '--wd', default=1e-4, type=float,
                     help='weight decay (default: 1e-4)')
 
+parser.add_argument('--batch', default=2, type=int,
+                    help='sets the batch size for training')
 #parser.add_argument('--method', default=0, type=int, help="specify in which format the segmentation maps should be used as an additional input, options NOSEGMENTATIONCUES=0,  SEGMENTATIONMASKGRAYSCALE=1, SEGMENTATIONMASKBOUNDARIES=2, SEGMENTATIONMASKONEHOT=3")
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -71,16 +73,12 @@ def main():
     if not torch.cuda.is_available():
         model.cpu()
         batch_size = 2
-    elif torch.cuda.device_count() == 8:
-        model = torch.nn.DataParallel(model, device_ids=[0, 1, 2, 3, 4, 5, 6, 7]).cuda()
-        batch_size = 64
-    elif torch.cuda.device_count() == 4:
-        model = torch.nn.DataParallel(model, device_ids=[0, 1, 2, 3]).cuda()
-        batch_size = 32
+        print("GPU NOT DETECTED, RUNNING ON CPU")
     else:
+        print("CUDA DETECTED, RUNNING ON GPU !")
         model = model.cuda()
         # batch_size = 4
-        batch_size = 2
+        batch_size = args.batch
     # print("GPU VRAM ifs:",torch.cuda.mem_get_info())
 
     cudnn.benchmark = True
@@ -88,15 +86,27 @@ def main():
     # print("GPU VRAM optimizer:",torch.cuda.mem_get_info())
     print("Starting to load the data.")
     train_loader = loaddata.getTrainingData(batch_size,"train_data.csv")
-    #test_loader = loaddata.getTestingData(1,"train_data.csv")
+    
     test_loader = loaddata.getTestingData(1,"test_data.csv")
     print("DataLoader finished loading")
-    # print("BatchSize:",batch_size)
-    # print("GPU VRAM 0:",torch.cuda.mem_get_info())
+    
     training_depth_res = []
     validation_depth_res = []
     filename_train = f"train-{filename_date}"
     filename_val = f"validation-{filename_date}"
+    keys = ["loss_depth","loss_dx","loss_dy","loss_normal","loss" ]
+    try:
+        p = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/results/'}"
+        with open(p+filename_train+"-results.csv",mode="w", newline='') as file:
+            w = csv.D2ictWriter(file, keys)
+            w.writeheader()
+        
+        with open(p+filename_val+"-results.csv",mode="w", newline='') as file:
+            w = csv.DictWriter(file, keys)
+            w.writeheader()
+    except Exception as e:
+        print("Exception while trying to write headers, got:",str(e))
+
     
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
@@ -120,6 +130,10 @@ def main():
             save_results(res_validation,filename_val)
             
             print("Saved validation data.")
+        if epoch % 2 == 0:
+            file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}-{epoch}.pth.tar"
+            print("Saving checkpoint to:", file)
+            save_checkpoint({'state_dict': model.state_dict()},file)
         
             
             
@@ -140,7 +154,7 @@ def main():
     print(f"TRAINED FOR:{end_time-start_time} ")
     
 
-    file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}.pth.tar"
+    file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}-final.pth.tar"
     print("Saving checkpoint to:", file)
     save_checkpoint({'state_dict': model.state_dict()},file)
 
@@ -170,6 +184,8 @@ def train(train_loader, model, optimizer, epoch):
         # print("DOING ITERATION:",i)
         # print("GPU VRAM:",torch.cuda.mem_get_info())
         image, depth = sample_batched['image'], sample_batched['depth']
+        if depth.isnan().any():
+            print("="*30,"NAN IN INITIAL DEPTH")
         # print(f"depth:{depth}")
         depth = depth.to(device)
 
@@ -289,11 +305,11 @@ def validation(data_loader,model):
 
         loss = loss_depth + loss_normal + (loss_dx + loss_dy)
         
-        return {"output":output,"loss_depth" :loss_depth,"loss_dx":loss_dx,
-        "loss_dy":loss_dy,"loss_normal":loss_normal,"loss":loss }
+        return {"output":output,"loss_depth" :loss_depth.item(),"loss_dx":loss_dx.item(),
+        "loss_dy":loss_dy.item(),"loss_normal":loss_normal.item(),"loss":loss.item() }
 
 def save_results(results:dict,filename:str=""):
-    global csv_header_created
+    
     # We want for training to save all epochs and outputs. 
     path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +"../outputs/results/"
 
@@ -301,9 +317,6 @@ def save_results(results:dict,filename:str=""):
 
     with open(results_filename,mode="a") as file:
         w = csv.DictWriter(file, results.keys())
-        if not csv_header_created:
-            w.writeheader()
-            csv_header_created = True
         w.writerow(results)
 
 
@@ -333,8 +346,8 @@ class AverageMeter(object):
 
 
 def save_checkpoint(state, filename='checkpointapple.pth.tar'):
-    now = datetime.datetime.now()
-    filename = f"./checkpointapple-{str(now.strftime('%m-%d-%Y-%H-%M-%S'))}.pth.tar"
+    # now = datetime.datetime.now()
+    # filename = f"./checkpointapple-{str(now.strftime('%m-%d-%Y-%H-%M-%S'))}.pth.tar"
     torch.save(state, filename)
 
 
