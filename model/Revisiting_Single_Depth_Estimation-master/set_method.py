@@ -24,7 +24,6 @@ class MyMethod:
         
 """
 
-
 global my_method
-my_method = Method.NOSEGMENTATIONCUES
+my_method = Method.SEGMENTATIONMASKBOUNDARIES
 

@@ -340,7 +340,6 @@ class CannyEdgeDetection(object):
 
     def edge_detection(self, image):
         edge_xy = self.get_edge(image)[0, : ,: ,:] #no batch
-        print("get edge did not work")
         edge_sobel = torch.pow(edge_xy[0, :, :], 2) + \
                      torch.pow(edge_xy[1, :, :], 2)
         edge_sobel = torch.sqrt(edge_sobel)
