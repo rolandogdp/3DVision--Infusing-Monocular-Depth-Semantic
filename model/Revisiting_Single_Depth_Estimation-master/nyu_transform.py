@@ -331,7 +331,6 @@ class CannyEdgeDetection(object):
         self.threshold = threshold
         self.get_edge = sobel.Sobel(3)
 
-
     def __call__(self, image):
         image = self.edge_detection(image)
         return image
