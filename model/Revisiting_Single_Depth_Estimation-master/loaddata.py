@@ -108,7 +108,7 @@ class depthDataset(Dataset):
         if(my_method is not Method.NOSEGMENTATIONCUES):
             image = torch.concat([segmentation_mask, image], axis=0)
 
-        print(image.shape)
+        # print(image.shape)
         sample = {'image': image, 'depth': depth}
 
         return sample

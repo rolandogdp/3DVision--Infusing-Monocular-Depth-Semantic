@@ -95,7 +95,7 @@ def main():
     try:
         p = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/results/'}"
         with open(p+filename_train+"-results.csv",mode="w", newline='') as file:
-            w = csv.D2ictWriter(file, keys)
+            w = csv.DictWriter(file, keys)
             w.writeheader()
         
         with open(p+filename_val+"-results.csv",mode="w", newline='') as file:
