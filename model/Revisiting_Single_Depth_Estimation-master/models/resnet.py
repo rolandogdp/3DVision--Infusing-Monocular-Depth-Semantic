@@ -205,8 +205,32 @@ def resnet50(pretrained=False, **kwargs):
     """
     model = ResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
     if pretrained:
-        #TODO: adapt weights according to method
-        model.load_state_dict(model_zoo.load_url(model_urls['resnet50'], 'pretrained_model/encoder'))
+
+        state_directory_of_pretrained_model = model_zoo.load_url(model_urls['resnet50'], 'pretrained_model/encoder')
+
+        weights_for_first_convolution = state_directory_of_pretrained_model.get("conv1.weight")
+        print(weights_for_first_convolution.size()) #torch.Size([64, 3, 7, 7])
+
+        if (my_method is Method.SEGMENTATIONMASKGRAYSCALE):
+            num_input_channels = 4
+        elif (my_method is Method.SEGMENTATIONMASKBOUNDARIES):
+            num_input_channels = 5
+        elif (my_method is Method.SEGMENTATIONMASKONEHOT):
+            num_input_channels = 42  # TODO: Figure out the number of classes to be used
+        else:
+            num_input_channels = 3
+
+        modified_weights_for_first_convolution = torch.repeat_interleave(weights_for_first_convolution,
+                                                                         repeats=torch.tensor(
+                                                                             [num_input_channels - 2, 1, 1]), dim=1)
+        print(modified_weights_for_first_convolution.size())
+
+        state_directory_of_pretrained_model["conv1.weight"] = modified_weights_for_first_convolution
+
+        print(state_directory_of_pretrained_model.get("conv1.weight").size())
+
+        model.load_state_dict(state_directory_of_pretrained_model)
+
     return model
 
 

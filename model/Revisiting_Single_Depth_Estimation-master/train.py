@@ -39,7 +39,7 @@ parser.add_argument('--batch', default=2, type=int,
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def define_model(is_resnet, is_densenet, is_senet):
-    pretrained = False
+    pretrained = True
     if is_resnet:
         original_model = resnet.resnet50(pretrained=pretrained)
         Encoder = modules.E_resnet(original_model) 
@@ -83,8 +83,10 @@ def main():
     # print("GPU VRAM optimizer:",torch.cuda.mem_get_info())
     print("Starting to load the data.")
     train_loader = loaddata.getTrainingData(batch_size,"train_data.csv")
-    
-    test_loader = loaddata.getTestingData(1,"test_data.csv")
+    first_batch_of_train_loader = next(iter(train_loader))
+
+    validation_loader = loaddata.getValidationData(1,"validation_data.csv")
+    first_batch_of_validation_loader = next(iter(validation_loader))
     print("DataLoader finished loading")
     
     training_depth_res = []
@@ -112,33 +114,29 @@ def main():
         train(train_loader, model, optimizer, epoch)
         end_time_loop = time.time()
         print(f"EPOCH TRAINED FOR :{end_time_loop-start_time_loop} ")
-        res_training = validation(data_loader=train_loader,model=model)
+        res_training = validation(batch=first_batch_of_train_loader,model=model)
         training_depth_res.append(res_training["output"])
         res_training.pop("output")
         save_results(res_training,filename_train)
 
-        
         print("Saved training results")
         if epoch % 5 == 0:
-            res_validation = validation(data_loader=test_loader,model=model)
+            res_validation = validation(batch=first_batch_of_validation_loader,model=model)
             validation_depth_res.append(res_validation["output"])
             res_validation.pop("output")
             
             save_results(res_validation,filename_val)
             
             print("Saved validation data.")
-        if epoch % 2 == 0:
-            file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}-{epoch}--{my_method}.pth.tar"
+        if epoch % 1 == 0:
+            #file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}-{epoch}--{my_method}.pth.tar"
+            file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] + '../outputs/checkpoints/'}checkpointapple-{filename_date}-{epoch}--{my_method}"
             print("Saving checkpoint to:", file)
-            save_checkpoint({'state_dict': model.state_dict()},file)
-        
-            
-            
+            #save_checkpoint(model.state_dict(),file)
+            save_checkpoint(model, file)
+
 
     path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +"../outputs/results/"
-    
-    
-    
 
     # Write the outputs
     file=path+filename_train+"-depth.pt"
@@ -151,9 +149,11 @@ def main():
     print(f"TRAINED FOR:{end_time-start_time} ")
     
 
-    file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}-final.pth.tar"
+    #file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}-{my_method}-final.pth.tar"
+    file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] + '../outputs/checkpoints/'}checkpointapple-{filename_date}-{my_method}-final"
     print("Saving checkpoint to:", file)
-    save_checkpoint({'state_dict': model.state_dict()},file)
+    #save_checkpoint(model.state_dict(),file)
+    save_checkpoint(model, file)
 
 def train(train_loader, model, optimizer, epoch):
     # if(torch.cuda.is_available()):
@@ -223,10 +223,16 @@ def train(train_loader, model, optimizer, epoch):
         # print(f"output:{output}")
         # print(f"depth:{depth}")
 
+        """
         loss_depth = torch.log(torch.abs(output - depth) + 0.5).sum()/num_nans #.mean()
         loss_dx = torch.log(torch.abs(output_grad_dx - depth_grad_dx) + 0.5).sum()/num_nans #.mean()
         loss_dy = torch.log(torch.abs(output_grad_dy - depth_grad_dy) + 0.5).sum()/num_nans#.mean()
         loss_normal = torch.abs(1 - cos(output_normal, depth_normal)).sum()/num_nans #.mean()
+        """
+        loss_depth = (torch.abs(output - depth) + 0.5).sum() / num_nans  # .mean()
+        loss_dx = (torch.abs(output_grad_dx - depth_grad_dx) + 0.5).sum() / num_nans  # .mean()
+        loss_dy = (torch.abs(output_grad_dy - depth_grad_dy) + 0.5).sum() / num_nans  # .mean()
+        loss_normal = torch.abs(1 - cos(output_normal, depth_normal)).sum() / num_nans  # .mean()
 
         # print(f"loss_depth:{loss_depth}")
         # print(f"loss_dx:{loss_dx}")
@@ -254,7 +260,7 @@ def train(train_loader, model, optimizer, epoch):
             # exit()
             print("=====NAN VALUE IN LOSS !!!!! =====================")
 
-def validation(data_loader,model):
+def validation(batch,model):
     cos = nn.CosineSimilarity(dim=1, eps=0)
     model.eval()
     with torch.no_grad():
@@ -264,7 +270,7 @@ def validation(data_loader,model):
             get_gradient = sobel.Sobel(1).cpu()
 
         # predict model on first sample from loader 
-        batch =  next(iter(data_loader)) 
+        batch =  next(iter(data_loader))
         image, depth = batch['image'], batch['depth']
         depth = depth.to(device)
         image = image.to(device)
@@ -287,6 +293,7 @@ def validation(data_loader,model):
 
         depth_grad = get_gradient(depth)
         output_grad = get_gradient(output)
+
         depth_grad_dx = depth_grad[:, 0, :, :].contiguous().view_as(depth)
         depth_grad_dy = depth_grad[:, 1, :, :].contiguous().view_as(depth)
         output_grad_dx = output_grad[:, 0, :, :].contiguous().view_as(depth)
@@ -295,10 +302,18 @@ def validation(data_loader,model):
         depth_normal = torch.cat((-depth_grad_dx, -depth_grad_dy, ones), 1)
         output_normal = torch.cat((-output_grad_dx, -output_grad_dy, ones), 1)
 
+        """ 
         loss_depth = torch.log(torch.abs(output - depth) + 0.5).sum()/num_nans #.mean()
         loss_dx = torch.log(torch.abs(output_grad_dx - depth_grad_dx) + 0.5).sum()/num_nans #.mean()
         loss_dy = torch.log(torch.abs(output_grad_dy - depth_grad_dy) + 0.5).sum()/num_nans#.mean()
         loss_normal = torch.abs(1 - cos(output_normal, depth_normal)).sum()/num_nans #.mean()
+        """
+
+        loss_depth = (torch.abs(output - depth) + 0.5).sum() / num_nans  # .mean()
+        loss_dx = (torch.abs(output_grad_dx - depth_grad_dx) + 0.5).sum() / num_nans  # .mean()
+        loss_dy = (torch.abs(output_grad_dy - depth_grad_dy) + 0.5).sum() / num_nans  # .mean()
+        loss_normal = torch.abs(1 - cos(output_normal, depth_normal)).sum() / num_nans  # .mean()
+
 
         loss = loss_depth + loss_normal + (loss_dx + loss_dy)
         

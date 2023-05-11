@@ -8,7 +8,6 @@ class Sobel(nn.Module):
         self.edge_conv = nn.Conv2d(num_input_channels, 2, kernel_size=3, stride=1, padding=1, bias=False)
         edge_kx = np.array([[1, 0, -1], [2, 0, -2], [1, 0, -1]])
         edge_ky = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]])
-        print(type(num_input_channels))
         edge_k = np.stack([np.stack([edge_kx for i in range(num_input_channels)]), np.stack([edge_ky for i in range(num_input_channels)])])
 
         edge_k = torch.from_numpy(edge_k).float().view(2, num_input_channels, 3, 3)

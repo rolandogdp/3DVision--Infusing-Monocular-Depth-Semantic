@@ -45,7 +45,6 @@ class E_resnet(nn.Module):
         self.bn1 = original_model.bn1
         self.relu = original_model.relu
         self.maxpool = original_model.maxpool
-
         self.layer1 = original_model.layer1
         self.layer2 = original_model.layer2
         self.layer3 = original_model.layer3
