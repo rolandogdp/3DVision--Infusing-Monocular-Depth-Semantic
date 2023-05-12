@@ -26,10 +26,10 @@ parser.add_argument('--epochs', default=1, type=int,
                     help='number of total epochs to run')
 parser.add_argument('--start-epoch', default=0, type=int,
                     help='manual epoch number (useful on restarts)')
-parser.add_argument('--lr', '--learning-rate', default=0.0001, type=float,
+parser.add_argument('--lr', '--learning-rate', default=0.001, type=float,
                     help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
-parser.add_argument('--weight-decay', '--wd', default=1e-4, type=float,
+parser.add_argument('--weight-decay', '--wd', default=1e-5, type=float,
                     help='weight decay (default: 1e-4)')
 
 parser.add_argument('--batch', default=2, type=int,
@@ -113,21 +113,21 @@ def main():
         train(train_loader, model, optimizer, epoch)
         end_time_loop = time.time()
         print(f"EPOCH TRAINED FOR :{end_time_loop-start_time_loop} ")
-        res_training = validation(batch=first_batch_of_train_loader,model=model)
+        res_training = validation(first_batch_of_train_loader,model=model)
         training_depth_res.append(res_training["output"])
         res_training.pop("output")
         save_results(res_training,filename_train)
 
         print("Saved training results")
         if epoch % 5 == 0:
-            res_validation = validation(batch=first_batch_of_validation_loader,model=model)
+            res_validation = validation(first_batch_of_validation_loader,model=model)
             validation_depth_res.append(res_validation["output"])
             res_validation.pop("output")
             
             save_results(res_validation,filename_val)
             
             print("Saved validation data.")
-        if epoch % 1 == 0:
+        if epoch % 2 == 0:
             file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}-{epoch}--{my_method}.pth.tar"
 
             print("Saving checkpoint to:", file)
@@ -217,7 +217,7 @@ def train(train_loader, model, optimizer, epoch):
         # print(f"output:{output}")
         # print(f"depth:{depth}")
 
-        loss_depth = torch.log(torch.abs(output - depth) + 0.5).sum()/num_nans #.mean()
+        loss_depth = torch.log(torch.abs(output - depth) + 0.5).sum()/num_nans
         loss_dx = torch.log(torch.abs(output_grad_dx - depth_grad_dx) + 0.5).sum()/num_nans #.mean()
         loss_dy = torch.log(torch.abs(output_grad_dy - depth_grad_dy) + 0.5).sum()/num_nans#.mean()
         loss_normal = torch.abs(1 - cos(output_normal, depth_normal)).sum()/num_nans #.mean()
@@ -232,7 +232,7 @@ def train(train_loader, model, optimizer, epoch):
         # print(f"loss_dy:{loss_dy}")
         # print(f"loss_normal:{loss_normal}")
 
-        loss = loss_depth + loss_normal + (loss_dx + loss_dy)
+        loss = loss_depth + loss_normal + (loss_dx + loss_dy) #.mean()
 
         losses.update(loss.item(), image.size(0))
         loss.backward()
