@@ -38,8 +38,7 @@ parser.add_argument('--batch', default=2, type=int,
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-def define_model(is_resnet, is_densenet, is_senet):
-    pretrained = True
+def define_model(is_resnet, is_densenet, is_senet, pretrained = True):
     if is_resnet:
         original_model = resnet.resnet50(pretrained=pretrained)
         Encoder = modules.E_resnet(original_model) 
@@ -62,7 +61,7 @@ def main():
     args = parser.parse_args()
     #set_method.mymethod(args.method) #initialize the desired method
     print("What is the value of my_method after initializing: ", my_method)
-    model = define_model(is_resnet=True, is_densenet=False, is_senet=False)
+    model = define_model(is_resnet=True, is_densenet=False, is_senet=False, pretrained=True)
     # print("GPU VRAM model defined:",torch.cuda.mem_get_info())
     now = datetime.datetime.now()
     filename_date = f".{str(now.strftime('%m-%d-%Y-%H-%M-%S'))}"
@@ -129,12 +128,10 @@ def main():
             
             print("Saved validation data.")
         if epoch % 1 == 0:
-            #file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}-{epoch}--{my_method}.pth.tar"
-            file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] + '../outputs/checkpoints/'}checkpointapple-{filename_date}-{epoch}--{my_method}"
-            print("Saving checkpoint to:", file)
-            #save_checkpoint(model.state_dict(),file)
-            save_checkpoint(model, file)
+            file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}-{epoch}--{my_method}.pth.tar"
 
+            print("Saving checkpoint to:", file)
+            save_checkpoint({'state_dict': model.state_dict()}, file)
 
     path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +"../outputs/results/"
 
@@ -143,17 +140,14 @@ def main():
     torch.save(torch.concat(training_depth_res).unsqueeze(1),file)
     file=path+filename_val+"-depth.pt"
     torch.save(torch.concat(validation_depth_res).unsqueeze(1),file)
-    
-         
+
     end_time = time.time()
     print(f"TRAINED FOR:{end_time-start_time} ")
-    
 
-    #file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}-{my_method}-final.pth.tar"
-    file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] + '../outputs/checkpoints/'}checkpointapple-{filename_date}-{my_method}-final"
+    file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}-{my_method}-final.pth.tar"
     print("Saving checkpoint to:", file)
-    #save_checkpoint(model.state_dict(),file)
-    save_checkpoint(model, file)
+    save_checkpoint({'state_dict': model.state_dict()}, file)
+
 
 def train(train_loader, model, optimizer, epoch):
     # if(torch.cuda.is_available()):
@@ -223,7 +217,6 @@ def train(train_loader, model, optimizer, epoch):
         # print(f"output:{output}")
         # print(f"depth:{depth}")
 
-        """
         loss_depth = torch.log(torch.abs(output - depth) + 0.5).sum()/num_nans #.mean()
         loss_dx = torch.log(torch.abs(output_grad_dx - depth_grad_dx) + 0.5).sum()/num_nans #.mean()
         loss_dy = torch.log(torch.abs(output_grad_dy - depth_grad_dy) + 0.5).sum()/num_nans#.mean()
@@ -233,7 +226,7 @@ def train(train_loader, model, optimizer, epoch):
         loss_dx = (torch.abs(output_grad_dx - depth_grad_dx) + 0.5).sum() / num_nans  # .mean()
         loss_dy = (torch.abs(output_grad_dy - depth_grad_dy) + 0.5).sum() / num_nans  # .mean()
         loss_normal = torch.abs(1 - cos(output_normal, depth_normal)).sum() / num_nans  # .mean()
-
+        """
         # print(f"loss_depth:{loss_depth}")
         # print(f"loss_dx:{loss_dx}")
         # print(f"loss_dy:{loss_dy}")
@@ -269,8 +262,7 @@ def validation(batch,model):
         else:
             get_gradient = sobel.Sobel(1).cpu()
 
-        # predict model on first sample from loader 
-        batch =  next(iter(data_loader))
+        # predict model on first sample from loader
         image, depth = batch['image'], batch['depth']
         depth = depth.to(device)
         image = image.to(device)
@@ -302,18 +294,18 @@ def validation(batch,model):
         depth_normal = torch.cat((-depth_grad_dx, -depth_grad_dy, ones), 1)
         output_normal = torch.cat((-output_grad_dx, -output_grad_dy, ones), 1)
 
-        """ 
+
         loss_depth = torch.log(torch.abs(output - depth) + 0.5).sum()/num_nans #.mean()
         loss_dx = torch.log(torch.abs(output_grad_dx - depth_grad_dx) + 0.5).sum()/num_nans #.mean()
         loss_dy = torch.log(torch.abs(output_grad_dy - depth_grad_dy) + 0.5).sum()/num_nans#.mean()
         loss_normal = torch.abs(1 - cos(output_normal, depth_normal)).sum()/num_nans #.mean()
+        
         """
-
         loss_depth = (torch.abs(output - depth) + 0.5).sum() / num_nans  # .mean()
         loss_dx = (torch.abs(output_grad_dx - depth_grad_dx) + 0.5).sum() / num_nans  # .mean()
         loss_dy = (torch.abs(output_grad_dy - depth_grad_dy) + 0.5).sum() / num_nans  # .mean()
         loss_normal = torch.abs(1 - cos(output_normal, depth_normal)).sum() / num_nans  # .mean()
-
+        """
 
         loss = loss_depth + loss_normal + (loss_dx + loss_dy)
         

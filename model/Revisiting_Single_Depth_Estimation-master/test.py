@@ -16,15 +16,42 @@ import util
 import numpy as np
 import sobel
 
+import csv
+
+import datetime
+
+from train import define_model
+
+from set_method import my_method
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # device = torch.device("cpu")
+
+parser = argparse.ArgumentParser(description='PyTorch DenseNet Testing')
+
+parser.add_argument('--batch', default=1, type=int,
+                    help='sets the batch size for testing')
+
+parser.add_argument('--pretrained_model', default="./pretrained_model/model_senet", type=str,
+                    help='tar file name of pretrained model')
+
 def main():
-    model = define_model(is_resnet=False, is_densenet=False, is_senet=True)
+    global args
+    args = parser.parse_args()
+
+    model = define_model(is_resnet=True, is_densenet=False, is_senet=False, pretrained=False)
+
+    pretrained_model_path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'
+    pretrained_model = args.pretrained_model
+
+    state_dict = torch.load(pretrained_model_path + pretrained_model, map_location=device)["state_dict"]
+    model.load_state_dict(state_dict)
 
     model = torch.nn.DataParallel(model).to(device)
-    model.load_state_dict(torch.load('./pretrained_model/model_senet', map_location=device))
+
+    batch_size = args.batch
     
-    test_loader = loaddata.getTestingData(1, "image_files.csv")
+    test_loader = loaddata.getTestingData(batch_size, "test_data.csv")
     test(test_loader, model, 2e-04)
 
 def test(test_loader, model, thre):
@@ -41,11 +68,7 @@ def test(test_loader, model, thre):
                 'MAE': 0,  'DELTA1': 0, 'DELTA2': 0, 'DELTA3': 0}
 
     for i, sample_batched in enumerate(test_loader):
-        print("test:",i)
         image, depth = sample_batched['image'], sample_batched['depth']
-
-        print(image.min())
-        print(image.max())
 
         if(torch.cuda.is_available()):
             depth = depth.cuda(non_blocking=True) #
@@ -70,13 +93,14 @@ def test(test_loader, model, thre):
         edge2_valid = (output_edge > thre)
 
         nvalid = np.sum(torch.eq(edge1_valid, edge2_valid).float().data.cpu().numpy())
-        A = nvalid / (depth.size(2)*depth.size(3))
+        A = nvalid / (depth.size(2)*depth.size(3)) #how many pixel are the same in edge map in percentage
 
-        nvalid2 = np.sum(((edge1_valid + edge2_valid) ==2).float().data.cpu().numpy()) #intersection
-        P = nvalid2/(np.sum(edge2_valid.data.cpu().numpy()))
-        R = nvalid2/(np.sum(edge1_valid.data.cpu().numpy()))
+        nvalid2 = np.sum(((edge1_valid + edge2_valid) ==2).float().data.cpu().numpy()) #number of true positive
+        P = nvalid2/(np.sum(edge2_valid.data.cpu().numpy())) #precision
+        R = nvalid2/(np.sum(edge1_valid.data.cpu().numpy())) #recall
 
-        F = (2 * P * R) / (P + R) #precision and recall?
+        epsilon = 10**(-10)
+        F = (2 * P * R) / (P + R + epsilon) #precision and recall?
 
         Ae += A
         Pe += P
@@ -87,32 +111,32 @@ def test(test_loader, model, thre):
     Pv = Pe / totalNumber
     Rv = Re / totalNumber
     Fv = Fe / totalNumber
-    print('PV', Pv)
-    print('RV', Rv)
-    print('FV', Fv)
+
+    segmentationError = {'Precision_of_EdgeMap': Pv, 'Recall_of_EdgeMap': Rv, 'F_Measure': Fv, 'Relative_EdgeMap_Error' : Av}
 
     averageError['RMSE'] = np.sqrt(averageError['MSE'])
+
     print(averageError)
+    print(segmentationError)
 
-def define_model(is_resnet, is_densenet, is_senet):
-    if is_resnet:
-        original_model = resnet.resnet50(pretrained = True)
-        Encoder = modules.E_resnet(original_model) 
-        model = net.model(Encoder, num_features=2048, block_channel = [256, 512, 1024, 2048])
-    if is_densenet:
-        original_model = densenet.densenet161(pretrained=True)
-        Encoder = modules.E_densenet(original_model)
-        model = net.model(Encoder, num_features=2208, block_channel = [192, 384, 1056, 2208])
-    if is_senet:
-        original_model = senet.senet154(pretrained='imagenet')
-        Encoder = modules.E_senet(original_model)
-        model = net.model(Encoder, num_features=2048, block_channel = [256, 512, 1024, 2048])
+    now = datetime.datetime.now()
+    filename_date = f".{str(now.strftime('%m-%d-%Y-%H-%M-%S'))}"
+    filename_error_norms = filename_train = f"test_-{filename_date}-{my_method}_error_norms.csv"
+    path = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] + '../outputs/results/test_error_norms/'}"
+    keys = {'MSE', 'RMSE', 'ABS_REL', 'LG10',
+                    'MAE', 'DELTA1', 'DELTA2', 'DELTA3', 'Precision_of_EdgeMap', 'Recall_of_EdgeMap', 'F_Measure', 'Relative_EdgeMap_Error'}
 
-    return model
+
+    with open(path + filename_error_norms, mode="w", newline='') as file:
+        w = csv.DictWriter(file, keys)
+        w.writeheader()
+        w.writerows(averageError.update(segmentationError))
+
+
    
 
 def edge_detection(depth):
-    get_edge = sobel.Sobel().to(device) #.cuda()
+    get_edge = sobel.Sobel(1).to(device) #.cuda()
 
     edge_xy = get_edge(depth)
     edge_sobel = torch.pow(edge_xy[:, 0, :, :], 2) + \
