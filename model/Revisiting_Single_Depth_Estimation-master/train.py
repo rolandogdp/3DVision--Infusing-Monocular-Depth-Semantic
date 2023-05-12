@@ -261,7 +261,7 @@ def validation(data_loader,model):
             get_gradient = sobel.Sobel(1).cuda()
         else:
             get_gradient = sobel.Sobel(1).cpu()
-
+        batch = next(iter(data_loader))
         # predict model on first sample from loader
         image, depth = batch['image'], batch['depth']
         depth = depth.to(device)
