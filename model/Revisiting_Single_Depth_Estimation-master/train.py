@@ -299,7 +299,7 @@ def validation(batch,model):
         loss_dx = torch.log(torch.abs(output_grad_dx - depth_grad_dx) + 0.5).sum()/num_nans #.mean()
         loss_dy = torch.log(torch.abs(output_grad_dy - depth_grad_dy) + 0.5).sum()/num_nans#.mean()
         loss_normal = torch.abs(1 - cos(output_normal, depth_normal)).sum()/num_nans #.mean()
-        
+
         """
         loss_depth = (torch.abs(output - depth) + 0.5).sum() / num_nans  # .mean()
         loss_dx = (torch.abs(output_grad_dx - depth_grad_dx) + 0.5).sum() / num_nans  # .mean()
