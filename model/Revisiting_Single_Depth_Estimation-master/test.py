@@ -80,8 +80,8 @@ def test(test_loader, model, thre):
         output = model(image)
         output = torch.nn.functional.interpolate(output, size=[depth.size(2),depth.size(3)], mode='bilinear')
 
-        depth_edge = edge_detection(depth)
-        output_edge = edge_detection(output)
+        depth_edge = edge_detection(depth,1)
+        output_edge = edge_detection(output,1)
 
         batchSize = depth.size(0)
         totalNumber = totalNumber + batchSize
@@ -111,6 +111,7 @@ def test(test_loader, model, thre):
     Pv = Pe / totalNumber
     Rv = Re / totalNumber
     Fv = Fe / totalNumber
+    print(Av)
 
     segmentationError = {'Precision_of_EdgeMap': Pv, 'Recall_of_EdgeMap': Rv, 'F_Measure': Fv, 'Relative_EdgeMap_Error' : Av}
 
@@ -135,8 +136,8 @@ def test(test_loader, model, thre):
 
    
 
-def edge_detection(depth):
-    get_edge = sobel.Sobel(1).to(device) #.cuda()
+def edge_detection(depth,channel_inputs=1):
+    get_edge = sobel.Sobel(channel_inputs).to(device) #.cuda()
 
     edge_xy = get_edge(depth)
     edge_sobel = torch.pow(edge_xy[:, 0, :, :], 2) + \

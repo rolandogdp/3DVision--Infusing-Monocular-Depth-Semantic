@@ -253,7 +253,7 @@ def train(train_loader, model, optimizer, epoch):
             # exit()
             print("=====NAN VALUE IN LOSS !!!!! =====================")
 
-def validation(batch,model):
+def validation(data_loader,model):
     cos = nn.CosineSimilarity(dim=1, eps=0)
     model.eval()
     with torch.no_grad():
