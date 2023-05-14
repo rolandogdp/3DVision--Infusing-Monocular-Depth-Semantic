@@ -80,12 +80,14 @@ def test(test_loader, model, thre):
         output = model(image)
         output = torch.nn.functional.interpolate(output, size=[depth.size(2),depth.size(3)], mode='bilinear')
 
-        depth_edge = edge_detection(depth,1)
-        output_edge = edge_detection(output,1)
+        _output, _depth, num_non_nans = util.setNanToZero(output, depth)
+
+        depth_edge = edge_detection(_depth,1)
+        output_edge = edge_detection(_output,1)
 
         batchSize = depth.size(0)
         totalNumber = totalNumber + batchSize
-        errors = util.evaluateError(output, depth)
+        errors = util.evaluateError(_output, _depth, num_non_nans)
         errorSum = util.addErrors(errorSum, errors, batchSize)
         averageError = util.averageErrors(errorSum, totalNumber)
 
@@ -93,7 +95,7 @@ def test(test_loader, model, thre):
         edge2_valid = (output_edge > thre)
 
         nvalid = np.sum(torch.eq(edge1_valid, edge2_valid).float().data.cpu().numpy())
-        A = nvalid / (depth.size(2)*depth.size(3)) #how many pixel are the same in edge map in percentage
+        A = nvalid / num_non_nans#(depth.size(2)*depth.size(3)) #how many pixel are the same in edge map in percentage
 
         nvalid2 = np.sum(((edge1_valid + edge2_valid) ==2).float().data.cpu().numpy()) #number of true positive
         P = nvalid2/(np.sum(edge2_valid.data.cpu().numpy())) #precision
@@ -107,13 +109,13 @@ def test(test_loader, model, thre):
         Re += R
         Fe += F
 
-    Av = Ae / totalNumber
+    Av = (Ae / totalNumber).item()
     Pv = Pe / totalNumber
     Rv = Re / totalNumber
     Fv = Fe / totalNumber
     print(Av)
 
-    segmentationError = {'Precision_of_EdgeMap': Pv, 'Recall_of_EdgeMap': Rv, 'F_Measure': Fv, 'Relative_EdgeMap_Error' : Av}
+    segmentationError = {'Precision_of_EdgeMap': Pv, 'Recall_of_EdgeMap': Rv, 'F_Measure': Fv, 'Relative_EdgeMap_Error': Av}
 
     averageError['RMSE'] = np.sqrt(averageError['MSE'])
 
@@ -122,16 +124,19 @@ def test(test_loader, model, thre):
 
     now = datetime.datetime.now()
     filename_date = f".{str(now.strftime('%m-%d-%Y-%H-%M-%S'))}"
-    filename_error_norms = filename_train = f"test_-{filename_date}-{my_method}_error_norms.csv"
+    filename_error_norms = f"test_-{filename_date}-{my_method}_error_norms.csv"
     path = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] + '../outputs/results/test_error_norms/'}"
     keys = {'MSE', 'RMSE', 'ABS_REL', 'LG10',
                     'MAE', 'DELTA1', 'DELTA2', 'DELTA3', 'Precision_of_EdgeMap', 'Recall_of_EdgeMap', 'F_Measure', 'Relative_EdgeMap_Error'}
 
+    averageError.update(segmentationError)
+    print(type(averageError))
+    print(averageError)
 
     with open(path + filename_error_norms, mode="w", newline='') as file:
-        w = csv.DictWriter(file, keys)
+        w = csv.DictWriter(file, averageError.keys())
         w.writeheader()
-        w.writerows(averageError.update(segmentationError))
+        w.writerow(averageError)
 
 
    

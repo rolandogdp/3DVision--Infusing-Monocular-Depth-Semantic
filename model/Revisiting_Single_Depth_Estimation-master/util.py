@@ -22,6 +22,7 @@ def nNanElement(x):
 def getNanMask(x):
     return torch.ne(x, x)
 
+""" 
 def setNanToZero(input, target):
     nanMask = getNanMask(target)
     nValidElement = nValid(target)
@@ -33,13 +34,26 @@ def setNanToZero(input, target):
     _target[nanMask] = 0
 
     return _input, _target, nanMask, nValidElement
+"""
 
+def setNanToZero(input, target):
+    mask_out_nans = target.isnan()
+    num_non_nans = (~mask_out_nans).sum()
 
-def evaluateError(output, target):
+    _target = target.clone()
+    _input = input.clone()
+
+    _target[mask_out_nans] = 0.
+    _input[mask_out_nans] = 0.
+
+    return _input, _target, num_non_nans
+
+def evaluateError(_output, _target, nValidElement):
     errors = {'MSE': 0, 'RMSE': 0, 'ABS_REL': 0, 'LG10': 0,
               'MAE': 0,  'DELTA1': 0, 'DELTA2': 0, 'DELTA3': 0}
 
-    _output, _target, nanMask, nValidElement = setNanToZero(output, target)
+    #_output, _target, nValidElement = setNanToZero(output, target)
+
 
     if (nValidElement.data.cpu().numpy() > 0):
         diffMatrix = torch.abs(_output - _target)
@@ -49,11 +63,11 @@ def evaluateError(output, target):
         errors['MAE'] = torch.sum(diffMatrix) / nValidElement
 
         realMatrix = torch.div(diffMatrix, _target)
-        realMatrix[nanMask] = 0
+        #realMatrix[nanMask] = 0
         errors['ABS_REL'] = torch.sum(realMatrix) / nValidElement
 
         LG10Matrix = torch.abs(lg10(_output) - lg10(_target))
-        LG10Matrix[nanMask] = 0
+        #LG10Matrix[nanMask] = 0
         errors['LG10'] = torch.sum(LG10Matrix) / nValidElement
 
         yOverZ = torch.div(_output, _target)
