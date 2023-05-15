@@ -253,7 +253,7 @@ def train(train_loader, model, optimizer, epoch):
             # exit()
             print("=====NAN VALUE IN LOSS !!!!! =====================")
 
-def validation(data_loader,model):
+def validation(batch,model):
     cos = nn.CosineSimilarity(dim=1, eps=0)
     model.eval()
     with torch.no_grad():
@@ -261,7 +261,6 @@ def validation(data_loader,model):
             get_gradient = sobel.Sobel(1).cuda()
         else:
             get_gradient = sobel.Sobel(1).cpu()
-        batch = next(iter(data_loader))
         # predict model on first sample from loader
         image, depth = batch['image'], batch['depth']
         depth = depth.to(device)

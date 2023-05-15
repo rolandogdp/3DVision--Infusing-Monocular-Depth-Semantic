@@ -29,7 +29,7 @@ class ConvertSemanticLabelsToRGB(object):
         image = np.asarray(image)
         rgb_image[image == -1, :] = [255, 255, 255]  # white
         for label in range(1, 41):
-            rgb_image[image == label] = self.mappings.iloc[label - 1]
+            rgb_image[image == label, :] = self.mappings.iloc[label - 1]
 
 
         return Image.fromarray(rgb_image) 
