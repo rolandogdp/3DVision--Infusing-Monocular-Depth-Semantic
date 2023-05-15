@@ -29,8 +29,8 @@ parser.add_argument('--start-epoch', default=0, type=int,
 parser.add_argument('--lr', '--learning-rate', default=0.001, type=float,
                     help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
-parser.add_argument('--weight-decay', '--wd', default=1e-5, type=float,
-                    help='weight decay (default: 1e-4)')
+parser.add_argument('--weight-decay', '--wd', default=1e-8, type=float,
+                    help='weight decay (default: 1e-8)')
 
 parser.add_argument('--batch', default=2, type=int,
                     help='sets the batch size for training')
@@ -109,7 +109,7 @@ def main():
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
         start_time_loop = time.time()
-        adjust_learning_rate(optimizer, epoch)
+        #adjust_learning_rate(optimizer, epoch)
         train(train_loader, model, optimizer, epoch)
         end_time_loop = time.time()
         print(f"EPOCH TRAINED FOR :{end_time_loop-start_time_loop} ")

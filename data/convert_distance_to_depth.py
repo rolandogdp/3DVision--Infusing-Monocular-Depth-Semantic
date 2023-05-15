@@ -25,10 +25,11 @@ class ConvertSemanticLabelsToRGB(object):
         return self.convert_semantic_label_to_rgb(image)
 
     def convert_semantic_label_to_rgb(self, image):
-        rgb_image = np.empty(shape=(image.size[0], image.size[1], 3), dtype=np.uint8)
-        mask = (image == -1)
-        rgb_image[mask, :] = [255, 255, 255]  # white
-        for label in range(1, 40):
+        rgb_image = np.empty(shape=(image.size[1], image.size[0], 3), dtype=np.uint8)
+        image = np.asarray(image)
+        rgb_image[image == -1, :] = [255, 255, 255]  # white
+        for label in range(1, 41):
             rgb_image[image == label] = self.mappings.iloc[label - 1]
+
 
         return Image.fromarray(rgb_image) 

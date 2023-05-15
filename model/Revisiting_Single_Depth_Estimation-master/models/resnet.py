@@ -198,7 +198,7 @@ def resnet34(pretrained=False, **kwargs):
     return model
 
 
-def resnet50(pretrained=False, **kwargs):
+def resnet50(pretrained=True, **kwargs):
     """Constructs a ResNet-50 model.
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
@@ -209,7 +209,9 @@ def resnet50(pretrained=False, **kwargs):
         state_directory_of_pretrained_model = model_zoo.load_url(model_urls['resnet50'], 'pretrained_model/encoder')
 
         weights_for_first_convolution = state_directory_of_pretrained_model.get("conv1.weight")
-        print(weights_for_first_convolution.size()) #torch.Size([64, 3, 7, 7])
+
+        #print(weights_for_first_convolution)
+        #print(weights_for_first_convolution.size())
 
         if (my_method is Method.SEGMENTATIONMASKGRAYSCALE):
             num_input_channels = 4
@@ -223,10 +225,12 @@ def resnet50(pretrained=False, **kwargs):
         modified_weights_for_first_convolution = torch.repeat_interleave(weights_for_first_convolution,
                                                                          repeats=torch.tensor(
                                                                              [num_input_channels - 2, 1, 1]), dim=1)
-        print(modified_weights_for_first_convolution.size())
 
         state_directory_of_pretrained_model["conv1.weight"] = modified_weights_for_first_convolution
 
+        #print(state_directory_of_pretrained_model["conv1.weight"]);
+
+        #print(state_directory_of_pretrained_model["bn1.running_mean"]);
         print(state_directory_of_pretrained_model.get("conv1.weight").size())
 
         model.load_state_dict(state_directory_of_pretrained_model)
