@@ -210,7 +210,7 @@ def resnet50(pretrained=True, **kwargs):
 
         weights_for_first_convolution = state_directory_of_pretrained_model.get("conv1.weight")
 
-        #print(weights_for_first_convolution)
+        #print(weights_for_first_convolution.dtype)
         #print(weights_for_first_convolution.size())
 
         if (my_method is Method.SEGMENTATIONMASKGRAYSCALE):
@@ -222,11 +222,16 @@ def resnet50(pretrained=True, **kwargs):
         else:
             num_input_channels = 3
 
-        modified_weights_for_first_convolution = torch.repeat_interleave(weights_for_first_convolution,
-                                                                         repeats=torch.tensor(
-                                                                             [num_input_channels - 2, 1, 1]), dim=1)
+        #modified_weights_for_first_convolution = torch.repeat_interleave(weights_for_first_convolution, repeats=torch.tensor([num_input_channels - 2, 1, 1]), dim=1)
 
-        state_directory_of_pretrained_model["conv1.weight"] = modified_weights_for_first_convolution
+        if(num_input_channels != 3):
+            stdv = 1. / math.sqrt(weights_for_first_convolution.shape[1])
+            initialized_weights = torch.empty((1, num_input_channels-3, weights_for_first_convolution.shape[2], weights_for_first_convolution.shape[3]), dtype=torch.float32).uniform_(-stdv, stdv)
+            concatenated_layers = initialized_weights.repeat((weights_for_first_convolution.shape[0], 1, 1, 1))
+
+            modified_weights_for_first_convolution = torch.concat([concatenated_layers, weights_for_first_convolution], axis=1)
+
+            state_directory_of_pretrained_model["conv1.weight"] = modified_weights_for_first_convolution
 
         #print(state_directory_of_pretrained_model["conv1.weight"]);
 
