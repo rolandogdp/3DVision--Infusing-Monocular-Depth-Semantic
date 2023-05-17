@@ -1,6 +1,8 @@
 from matplotlib import pyplot as plt
 import torch
 
+import os
+
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 """ display single image """
@@ -20,14 +22,8 @@ def compute_error(ground_truth_depth, depth_output):
 
 """ display a ground truth, output depth and the error plot """
 def display_error_plots(ground_truth_depth, depth_output):
-    print("Depth max: ", depth_output.max())
-    print("Depth min: ", depth_output.min())
-    print("Depth groundtruth max: ", ground_truth_depth.max())
-    print("Depth groundtruth min: ", ground_truth_depth.min())
     error = compute_error(ground_truth_depth, depth_output)
 
-    print("Error max: ", error.max())
-    print("Error min: ", error.min())
     min_scale = min(ground_truth_depth.min(), depth_output.min())
     max_scale = max(ground_truth_depth.max(), depth_output.max())
     if ground_truth_depth.isnan().any():
@@ -35,34 +31,28 @@ def display_error_plots(ground_truth_depth, depth_output):
         temp[temp.isnan()] = 3; #TODO figure out how to set
         min_scale = min(temp.min(), depth_output.min())
         max_scale = max(temp.max(), depth_output.max())
-        print("Min_Scale: ", min_scale)
-        print("Max_Scale: ", max_scale)
 
     fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(12, 16))
     pcm = axs[0].imshow(depth_output.permute(1, 2, 0), vmax=max_scale, vmin=min_scale)
-    pcm.set_xlabel("Model Output dDpthmap in meters")
+    axs[0].set_xlabel("Model Output dDpthmap in meters")
     fig.colorbar(pcm, ax=axs[0], fraction=0.046, pad=0.04)
     pcm2 = axs[1].imshow(ground_truth_depth.permute(1, 2, 0), vmax=max_scale, vmin=min_scale)
-    pcm2.set_xlabel("Ground Truth Depthmap in meters")
+    axs[1].set_xlabel("Ground Truth Depthmap in meters")
     fig.colorbar(pcm2, ax=axs[1], fraction=0.046, pad=0.04)
     pcm3 = axs[2].imshow(error.permute(1, 2, 0))
-    pcm3.set_xlabel("L1 error thresholded at 0.6 m")
+    axs[2].set_xlabel("L1 error thresholded at 0.6 m")
     fig.colorbar(pcm3, ax=axs[2], fraction=0.046, pad=0.04)
     fig.tight_layout()
     plt.show()
 
+
+
 """ 
 plot ground truth, depth_output, rgb_image and segmentation 
 """
-def plot(ground_truth_depth, depth_output, rgb_image, plot_name):
-    print("Depth max: ", depth_output.max())
-    print("Depth min: ", depth_output.min())
-    print("Depth groundtruth max: ", ground_truth_depth.max())
-    print("Depth groundtruth min: ", ground_truth_depth.min())
+def plot(ground_truth_depth, depth_output, rgb_image, plot_name=None):
     error = compute_error(ground_truth_depth, depth_output)
 
-    print("Error max: ", error.max())
-    print("Error min: ", error.min())
     min_scale = min(ground_truth_depth.min(), depth_output.min())
     max_scale = max(ground_truth_depth.max(), depth_output.max())
     if ground_truth_depth.isnan().any():
@@ -70,8 +60,6 @@ def plot(ground_truth_depth, depth_output, rgb_image, plot_name):
         temp[temp.isnan()] = 3; #TODO: set correct value
         min_scale = min(temp.min(), depth_output.min())
         max_scale = max(temp.max(), depth_output.max())
-        print("Min_Scale: ", min_scale)
-        print("Max_Scale: ", max_scale)
 
     fig, axs = plt.subplots(nrows=1, ncols=4, figsize=(12, 16))
     axs[0].imshow(rgb_image.permute(1, 2, 0))
@@ -87,10 +75,11 @@ def plot(ground_truth_depth, depth_output, rgb_image, plot_name):
     axs[3].set_xlabel("L1 error thresholded at 0.6 m")
     fig.tight_layout()
     plt.show()
-    fig.savefig(plot_name, bbox_inches='tight')
+    if plot_name is not None:
+        fig.savefig(os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']+"../plots/validation_error_plots/"+plot_name+".png", bbox_inches='tight')
 
 """ display many tensor data"""
-def display_tensor_data_many(tensors, remap=None, titles=None, figsize=(15, 15), fontsize=12):
+def display_tensor_data_many(tensors, remap=None, titles=None, figsize=(15, 15), fontsize=12, plot_name=None):
     nb = len(tensors)
     if titles is None:
         titles = ["Prediction", "Ground Truth", "RGB Input"]
@@ -106,7 +95,13 @@ def display_tensor_data_many(tensors, remap=None, titles=None, figsize=(15, 15),
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.05)
         fig.colorbar(pcm, cax=cax)  # ticks=[-1, 0, 1])
+
+    fig.tight_layout()
     plt.show()
+
+
+    if plot_name is not None:
+        plt.savefig(os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']+"../plots/validation_plots/"+plot_name+".png", bbox_inches='tight')
 
 """ display image pairs"""
 def display_image_pairs(rgb_image_tensor, segmentation):
@@ -123,7 +118,7 @@ def denormalize(image_input):
     return image
 
 
-def plot_training_progress(dataframe, title=None):
+def plot_training_progress(dataframe, title=None, plot_name=None):
     fig = plt.figure()
     ax = fig.gca()
     x = list(range(dataframe.shape[0]))
@@ -145,4 +140,7 @@ def plot_training_progress(dataframe, title=None):
     # line.set_label("loss_normal")
     ax.legend()
     plt.show()
+
+    if plot_name is not None:
+        plt.savefig(os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']+"../plots/training_progress_plots/"+plot_name+".png", bbox_inches='tight')
 
