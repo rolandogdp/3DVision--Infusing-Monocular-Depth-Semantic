@@ -57,7 +57,7 @@ def main():
 def test(test_loader, model, thre):
     model.eval()
 
-    totalNumber = 0
+    totalNumber = len(test_loader)
 
     Ae = 0
     Pe = 0
@@ -86,7 +86,6 @@ def test(test_loader, model, thre):
         output_edge = edge_detection(_output,1)
 
         batchSize = depth.size(0)
-        totalNumber = totalNumber + batchSize
         errors = util.evaluateError(_output, _depth, num_non_nans)
         errorSum = util.addErrors(errorSum, errors, batchSize)
         averageError = util.averageErrors(errorSum, totalNumber)
@@ -116,7 +115,7 @@ def test(test_loader, model, thre):
     print(Av)
 
     segmentationError = {'Precision_of_EdgeMap': Pv, 'Recall_of_EdgeMap': Rv, 'F_Measure': Fv, 'Relative_EdgeMap_Error': Av}
-
+    averageError = util.averageErrors(errorSum, totalNumber)
     averageError['RMSE'] = np.sqrt(averageError['MSE'])
 
     print(averageError)

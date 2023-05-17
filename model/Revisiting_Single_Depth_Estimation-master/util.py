@@ -58,17 +58,24 @@ def evaluateError(_output, _target, nValidElement):
     if (nValidElement.data.cpu().numpy() > 0):
         diffMatrix = torch.abs(_output - _target)
 
+        print("shape diffMatrix: ", diffMatrix.shape)
+
+
         errors['MSE'] = torch.sum(torch.pow(diffMatrix, 2)) / nValidElement
 
         errors['MAE'] = torch.sum(diffMatrix) / nValidElement
 
         realMatrix = torch.div(diffMatrix, _target)
-        #realMatrix[nanMask] = 0
-        errors['ABS_REL'] = torch.sum(realMatrix) / nValidElement
+        mask_out_nans = realMatrix.isnan()
+        num_non_nans = (~mask_out_nans).sum()
+        realMatrix[mask_out_nans] = 0
+        errors['ABS_REL'] = torch.sum(realMatrix) / num_non_nans
 
         LG10Matrix = torch.abs(lg10(_output) - lg10(_target))
-        #LG10Matrix[nanMask] = 0
-        errors['LG10'] = torch.sum(LG10Matrix) / nValidElement
+        mask_out_nans = LG10Matrix.isnan()
+        num_non_nans = (~mask_out_nans).sum()
+        LG10Matrix[mask_out_nans] = 0
+        errors['LG10'] = torch.sum(LG10Matrix) / num_non_nans
 
         yOverZ = torch.div(_output, _target)
         zOverY = torch.div(_target, _output)
@@ -94,14 +101,14 @@ def evaluateError(_output, _target, nValidElement):
 
 
 def addErrors(errorSum, errors, batchSize):
-    errorSum['MSE']=errorSum['MSE'] + errors['MSE'] * batchSize
-    errorSum['ABS_REL']=errorSum['ABS_REL'] + errors['ABS_REL'] * batchSize
-    errorSum['LG10']=errorSum['LG10'] + errors['LG10'] * batchSize
-    errorSum['MAE']=errorSum['MAE'] + errors['MAE'] * batchSize
+    errorSum['MSE']=errorSum['MSE'] + errors['MSE'] #* batchSize
+    errorSum['ABS_REL']=errorSum['ABS_REL'] + errors['ABS_REL'] #* batchSize
+    errorSum['LG10']=errorSum['LG10'] + errors['LG10'] #* batchSize
+    errorSum['MAE']=errorSum['MAE'] + errors['MAE'] #* batchSize
 
-    errorSum['DELTA1']=errorSum['DELTA1'] + errors['DELTA1'] * batchSize
-    errorSum['DELTA2']=errorSum['DELTA2'] + errors['DELTA2'] * batchSize
-    errorSum['DELTA3']=errorSum['DELTA3'] + errors['DELTA3'] * batchSize
+    errorSum['DELTA1']=errorSum['DELTA1'] + errors['DELTA1'] #* batchSize
+    errorSum['DELTA2']=errorSum['DELTA2'] + errors['DELTA2'] #* batchSize
+    errorSum['DELTA3']=errorSum['DELTA3'] + errors['DELTA3'] #* batchSize
 
     return errorSum
 

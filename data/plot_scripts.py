@@ -80,28 +80,30 @@ def plot(ground_truth_depth, depth_output, rgb_image, plot_name=None):
 
 """ display many tensor data"""
 def display_tensor_data_many(tensors, remap=None, titles=None, figsize=(15, 15), fontsize=12, plot_name=None):
-    nb = len(tensors)
     if titles is None:
-        titles = ["Prediction", "Ground Truth", "RGB Input"]
-    fig, axes = plt.subplots(1, nb, layout='constrained', figsize=figsize)
+        titles = ["Model Prediction", "Ground Truth", "RGB Input"]
+    nb = len(titles)
+    fig, axes = plt.subplots(1, nb, figsize=figsize)
     if remap is not None:
         for i in range(nb):
             if remap[i] is not None:
                 tensors[i] = remap[i](tensors[i])
 
     for i, ax in enumerate(axes):
-        pcm = ax.imshow(tensors[i].permute(1, 2, 0))
+        if(titles[i] == "Segmentation Mask as Grayscale Image"):
+            pcm = ax.imshow(tensors[i].permute(1,2,0), cmap="gray")
+        else:
+            pcm = ax.imshow(tensors[i].permute(1, 2, 0))
         ax.set_title(titles[i], fontsize=fontsize)
         divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", size="5%", pad=0.05)
+        cax = divider.append_axes("right", size="5%", pad=0.1)
         fig.colorbar(pcm, cax=cax)  # ticks=[-1, 0, 1])
 
     fig.tight_layout()
     plt.show()
 
-
     if plot_name is not None:
-        plt.savefig(os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']+"../plots/validation_plots/"+plot_name+".png", bbox_inches='tight')
+        fig.savefig(os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']+"../plots/validation_error_plots/"+plot_name+".png", bbox_inches='tight')
 
 """ display image pairs"""
 def display_image_pairs(rgb_image_tensor, segmentation):
