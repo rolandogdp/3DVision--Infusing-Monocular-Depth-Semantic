@@ -41,8 +41,11 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 def define_model(is_resnet, is_densenet, is_senet, pretrained = True):
     if is_resnet:
         original_model = resnet.resnet50(pretrained=pretrained)
-        Encoder = modules.E_resnet(original_model) 
-        model = net.model(Encoder, num_features=2048, block_channel = [256, 512, 1024, 2048])
+        Encoder = modules.E_resnet(original_model)
+        if my_method is Method.JOINTLEARNING:
+            model = net.joint_model(Encoder, num_features=2048, block_channel = [256, 512, 1024, 2048])
+        else:
+            model = net.model(Encoder, num_features=2048, block_channel=[256, 512, 1024, 2048])
     if is_densenet:
         original_model = densenet.densenet161(pretrained=pretrained)
         Encoder = modules.E_densenet(original_model)
@@ -53,7 +56,6 @@ def define_model(is_resnet, is_densenet, is_senet, pretrained = True):
         model = net.model(Encoder, num_features=2048, block_channel = [256, 512, 1024, 2048])
 
     return model
-
 
 def main():
     # print("GPU VRAM MAIN:",torch.cuda.mem_get_info())
@@ -92,7 +94,11 @@ def main():
     validation_depth_res = []
     filename_train = f"train-{filename_date}-{my_method}"
     filename_val = f"validation-{filename_date}-{my_method}"
-    keys = ["loss_depth","loss_dx","loss_dy","loss_normal","loss" ]
+
+    if(my_method == Method.JOINTLEARNING):
+        keys = ["loss_depth", "loss_segmentation", "loss_dx","loss_dy","loss_normal","loss"]
+    else:
+        keys = ["loss_depth", "loss_dx", "loss_dy", "loss_normal", "loss"]
     try:
         p = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/results/'}"
         with open(p+filename_train+"-results.csv",mode="w", newline='') as file:
@@ -105,7 +111,7 @@ def main():
     except Exception as e:
         print("Exception while trying to write headers, got:",str(e))
 
-    
+
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
         start_time_loop = time.time()
@@ -114,17 +120,24 @@ def main():
         end_time_loop = time.time()
         print(f"EPOCH TRAINED FOR :{end_time_loop-start_time_loop} ")
         res_training = validation(first_batch_of_train_loader,model=model)
-        training_depth_res.append(res_training["output"])
-        res_training.pop("output")
+        training_depth_res.append(res_training["output_depth"])
+        res_training.pop("output_depth")
+
+        if(my_method == Method.JOINTLEARNING):
+            res_training.pop("output_segmentation")
+
         save_results(res_training,filename_train)
 
         print("Saved training results")
         if epoch % 5 == 0:
             res_validation = validation(first_batch_of_validation_loader,model=model)
-            validation_depth_res.append(res_validation["output"])
-            res_validation.pop("output")
+            validation_depth_res.append(res_validation["output_depth"])
+            res_validation.pop("output_depth")
+
+            if(my_method == Method.JOINTLEARNING):
+                res_validation.pop("output_segmentation")
             
-            save_results(res_validation,filename_val)
+            save_results(res_validation, filename_val)
             
             print("Saved validation data.")
         if epoch % 2 == 0:
@@ -159,6 +172,7 @@ def train(train_loader, model, optimizer, epoch):
 
     model.train()
 
+    cross_entropy_loss = nn.CrossEntropyLoss()
     cos = nn.CosineSimilarity(dim=1, eps=0)
     # print("GPU VRAM before Sobel:",torch.cuda.mem_get_info())
 
@@ -174,7 +188,14 @@ def train(train_loader, model, optimizer, epoch):
     for i, sample_batched in enumerate(train_loader):
         # print("DOING ITERATION:",i)
         # print("GPU VRAM:",torch.cuda.mem_get_info())
-        image, depth = sample_batched['image'], sample_batched['depth']
+
+        if(my_method == Method.JOINTLEARNING):
+            image, depth, segmentation_mask = sample_batched['image'], sample_batched['depth'], sample_batched["segmentation"]
+            segmentation_mask = segmentation_mask.to(device)
+            segmentation_mask = torch.autograd.Variable(segmentation_mask, requires_grad=False)
+        else:
+            image, depth = sample_batched['image'], sample_batched['depth']
+
         if depth.isnan().any():
             print("="*30,"NAN IN INITIAL DEPTH")
         # print(f"depth:{depth}")
@@ -198,12 +219,16 @@ def train(train_loader, model, optimizer, epoch):
         ones = torch.autograd.Variable(ones, requires_grad=False)
         optimizer.zero_grad()
         # print("GPU VRAM before model call:",torch.cuda.mem_get_info())
-        output = model(image)
-        output[mask_out_nans] = 0.
+        if(my_method == Method.JOINTLEARNING):
+            output_depth, output_segmentation = model(image)
+        else:
+            output_depth = model(image)
+
+        output_depth[mask_out_nans] = 0.
         #output = torch.masked_select(output, mask=mask_out_nans);
 
         depth_grad = get_gradient(depth)
-        output_grad = get_gradient(output)
+        output_grad = get_gradient(output_depth)
         depth_grad_dx = depth_grad[:, 0, :, :].contiguous().view_as(depth)
         depth_grad_dy = depth_grad[:, 1, :, :].contiguous().view_as(depth)
         output_grad_dx = output_grad[:, 0, :, :].contiguous().view_as(depth)
@@ -217,10 +242,11 @@ def train(train_loader, model, optimizer, epoch):
         # print(f"output:{output}")
         # print(f"depth:{depth}")
 
-        loss_depth = torch.log(torch.abs(output - depth) + 0.5).sum()/num_nans
+        loss_depth = torch.log(torch.abs(output_depth - depth) + 0.5).sum()/num_nans
         loss_dx = torch.log(torch.abs(output_grad_dx - depth_grad_dx) + 0.5).sum()/num_nans #.mean()
         loss_dy = torch.log(torch.abs(output_grad_dy - depth_grad_dy) + 0.5).sum()/num_nans#.mean()
         loss_normal = torch.abs(1 - cos(output_normal, depth_normal)).sum()/num_nans #.mean()
+
         """
         loss_depth = (torch.abs(output - depth) + 0.5).sum() / num_nans  # .mean()
         loss_dx = (torch.abs(output_grad_dx - depth_grad_dx) + 0.5).sum() / num_nans  # .mean()
@@ -232,7 +258,17 @@ def train(train_loader, model, optimizer, epoch):
         # print(f"loss_dy:{loss_dy}")
         # print(f"loss_normal:{loss_normal}")
 
-        loss = loss_depth + loss_normal + (loss_dx + loss_dy) #.mean()
+        if (my_method == Method.JOINTLEARNING):
+            print("size output_segmentation: ", output_segmentation.shape)
+            print("size segmentation_mask: ", segmentation_mask.shape)
+
+            print(output_segmentation.min())
+            print(output_segmentation.max())
+            loss_segmentation = cross_entropy_loss(output_segmentation, segmentation_mask)
+            print(loss_segmentation)
+            loss = loss_depth + loss_normal + (loss_dx + loss_dy) + loss_segmentation #.mean()
+        else:
+            loss = loss_depth + loss_normal + (loss_dx + loss_dy)
 
         losses.update(loss.item(), image.size(0))
         loss.backward()
@@ -243,11 +279,19 @@ def train(train_loader, model, optimizer, epoch):
 
         batchSize = depth.size(0)
 
-        print('Epoch: [{0}][{1}/{2}]\t'
-            'Time {batch_time.val:.3f} ({batch_time.sum:.3f})\t'
-            'Loss {loss.val:.4f} ({loss.avg:.4f}) , loss_depth {loss_depth}, loss_normal {loss_normal}, loss_dx {loss_dx},  loss_dy {loss_dy}'
-            .format(epoch, i+1, len(train_loader), batch_time=batch_time, loss=losses, loss_depth=loss_depth, loss_normal=loss_normal, loss_dx=loss_dx, loss_dy=loss_dy
-                    ))
+        if(my_method == Method.JOINTLEARNING):
+            print('Epoch: [{0}][{1}/{2}]\t'
+                  'Time {batch_time.val:.3f} ({batch_time.sum:.3f})\t'
+                  'Loss {loss.val:.4f} ({loss.avg:.4f}) , loss_depth {loss_depth}, loss_segmentation {loss_segmentation}, loss_normal {loss_normal}, loss_dx {loss_dx},  loss_dy {loss_dy}'
+                  .format(epoch, i + 1, len(train_loader), batch_time=batch_time, loss=losses, loss_depth=loss_depth, loss_segmentation=loss_segmentation,
+                          loss_normal=loss_normal, loss_dx=loss_dx, loss_dy=loss_dy
+                          ))
+        else:
+            print('Epoch: [{0}][{1}/{2}]\t'
+                'Time {batch_time.val:.3f} ({batch_time.sum:.3f})\t'
+                'Loss {loss.val:.4f} ({loss.avg:.4f}) , loss_depth {loss_depth}, loss_normal {loss_normal}, loss_dx {loss_dx},  loss_dy {loss_dy}'
+                .format(epoch, i+1, len(train_loader), batch_time=batch_time, loss=losses, loss_depth=loss_depth, loss_normal=loss_normal, loss_dx=loss_dx, loss_dy=loss_dy
+                        ))
 
         if loss.isnan().any():
             # exit()
@@ -255,14 +299,22 @@ def train(train_loader, model, optimizer, epoch):
 
 def validation(batch,model):
     cos = nn.CosineSimilarity(dim=1, eps=0)
+    cross_entropy_loss = nn.CrossEntropyLoss()
     model.eval()
     with torch.no_grad():
         if(torch.cuda.is_available()):
             get_gradient = sobel.Sobel(1).cuda()
         else:
             get_gradient = sobel.Sobel(1).cpu()
+
         # predict model on first sample from loader
-        image, depth = batch['image'], batch['depth']
+        if(my_method == Method.JOINTLEARNING):
+            image, depth, segmentation_mask = batch['image'], batch['depth'], batch["segmentation"]
+            segmentation_mask.to(device)
+            segmentation_mask = torch.autograd.Variable(segmentation_mask, requires_grad=False)
+        else:
+            image, depth = batch['image'], batch['depth']
+
         depth = depth.to(device)
         image = image.to(device)
         # predict model on first sameple from testing
@@ -277,13 +329,16 @@ def validation(batch,model):
 
         ones = torch.autograd.Variable(ones, requires_grad=False)
         # print("GPU VRAM before model call:",torch.cuda.mem_get_info())
-        output = model(image)
-        mask_out_nans = output.isnan()
-        output[mask_out_nans] = 0.
+        if (my_method == Method.JOINTLEARNING):
+            output_depth, output_segmentation = model(image)
+        else:
+            output_depth = model(image)
+
+        output_depth[mask_out_nans] = 0.
         #output = torch.masked_select(output, mask=mask_out_nans);
 
         depth_grad = get_gradient(depth)
-        output_grad = get_gradient(output)
+        output_grad = get_gradient(output_depth)
 
         depth_grad_dx = depth_grad[:, 0, :, :].contiguous().view_as(depth)
         depth_grad_dy = depth_grad[:, 1, :, :].contiguous().view_as(depth)
@@ -294,7 +349,7 @@ def validation(batch,model):
         output_normal = torch.cat((-output_grad_dx, -output_grad_dy, ones), 1)
 
 
-        loss_depth = torch.log(torch.abs(output - depth) + 0.5).sum()/num_nans #.mean()
+        loss_depth = torch.log(torch.abs(output_depth - depth) + 0.5).sum()/num_nans #.mean()
         loss_dx = torch.log(torch.abs(output_grad_dx - depth_grad_dx) + 0.5).sum()/num_nans #.mean()
         loss_dy = torch.log(torch.abs(output_grad_dy - depth_grad_dy) + 0.5).sum()/num_nans#.mean()
         loss_normal = torch.abs(1 - cos(output_normal, depth_normal)).sum()/num_nans #.mean()
@@ -306,11 +361,18 @@ def validation(batch,model):
         loss_normal = torch.abs(1 - cos(output_normal, depth_normal)).sum() / num_nans  # .mean()
         """
 
-        loss = loss_depth + loss_normal + (loss_dx + loss_dy)
-        
-        return {"output":output,"loss_depth" :loss_depth.item(),"loss_dx":loss_dx.item(),
-        "loss_dy":loss_dy.item(),"loss_normal":loss_normal.item(),"loss":loss.item() }
+        if (my_method == Method.JOINTLEARNING):
+            loss_segmentation = cross_entropy_loss(output_segmentation, segmentation_mask)
+            loss = loss_depth + loss_normal + (loss_dx + loss_dy) + loss_segmentation #.mean()
+        else:
+            loss = loss_depth + loss_normal + (loss_dx + loss_dy)
 
+        if(my_method == Method.JOINTLEARNING):
+            return {"output_depth": output_depth, "output_segmentation": output_segmentation, "loss_depth": loss_depth.item(), "loss_segmentation": loss_segmentation.item(), "loss_dx": loss_dx.item(),
+                    "loss_dy": loss_dy.item(), "loss_normal": loss_normal.item(), "loss": loss.item()}
+        else:
+            return {"output_depth": output_depth, "loss_depth": loss_depth.item(), "loss_dx": loss_dx.item(),
+                    "loss_dy": loss_dy.item(), "loss_normal": loss_normal.item(), "loss": loss.item()}
 def save_results(results:dict,filename:str=""):
     
     # We want for training to save all epochs and outputs. 

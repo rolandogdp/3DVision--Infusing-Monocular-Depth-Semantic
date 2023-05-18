@@ -183,6 +183,39 @@ class MFF(nn.Module):
         return x
 
 
+class R_classification(nn.Module):
+    def __init__(self, block_channel):
+        super(R_classification, self).__init__()
+
+        num_features = 64 + block_channel[3] // 32
+        self.conv0 = nn.Conv2d(num_features, num_features,
+                               kernel_size=5, stride=1, padding=2, bias=False)
+        self.bn0 = nn.BatchNorm2d(num_features)
+
+        self.conv1 = nn.Conv2d(num_features, num_features,
+                               kernel_size=5, stride=1, padding=2, bias=False)
+        self.bn1 = nn.BatchNorm2d(num_features)
+
+        self.conv2 = nn.Conv2d(
+            num_features, 39, kernel_size=5, stride=1, padding=2, bias=True)
+
+        #self.softmax = nn.Softmax(dim=0)
+
+    def forward(self, x):
+        x0 = self.conv0(x)
+        x0 = self.bn0(x0)
+        x0 = F.relu(x0)
+
+        x1 = self.conv1(x0)
+        x1 = self.bn1(x1)
+        x1 = F.relu(x1)
+
+        x2 = self.conv2(x1)
+        print(x2.shape)
+        #x3 = self.softmax(x2)
+
+        return x2
+
 class R(nn.Module):
     def __init__(self, block_channel):
 

@@ -218,7 +218,7 @@ def resnet50(pretrained=True, **kwargs):
         elif (my_method is Method.SEGMENTATIONMASKBOUNDARIES):
             num_input_channels = 5
         elif (my_method is Method.SEGMENTATIONMASKONEHOT):
-            num_input_channels = 42  # TODO: Figure out the number of classes to be used
+            num_input_channels = 42
         else:
             num_input_channels = 3
 

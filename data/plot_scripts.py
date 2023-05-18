@@ -144,5 +144,5 @@ def plot_training_progress(dataframe, title=None, plot_name=None):
     plt.show()
 
     if plot_name is not None:
-        plt.savefig(os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']+"../plots/training_progress_plots/"+plot_name+".png", bbox_inches='tight')
+        fig.savefig(os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']+"../plots/training_progress_plots/"+plot_name+".png", bbox_inches='tight')
 

@@ -83,6 +83,12 @@ class depthDataset(Dataset):
             else:
                 segmentation_mask = Image.open(segmentation_mask_name, "r")
 
+        if(my_method is Method.JOINTLEARNING):
+            if self.transform_segmentation_mask:
+                segmentation_mask = self.transform_segmentation_mask(segmentation_mask)
+            #convert to one-hot-encoded vector
+            segmentation_mask_one_hot_encoded = torch.concat([torch.where(segmentation_mask == 1., segmentation_mask, 0.) for label in range(1,40)], axis=0)
+            segmentation_mask = segmentation_mask_one_hot_encoded
         if(my_method is Method.SEGMENTATIONMASKGRAYSCALE):
             segmentation_mask = self.convert_semantic_label_to_rgb(segmentation_mask)
             segmentation_mask = self.grayscale_conversion(segmentation_mask)
@@ -99,17 +105,17 @@ class depthDataset(Dataset):
             if(self.transform_segmentation_mask):
                 segmentation_mask = self.transform_segmentation_mask(segmentation_mask)
             segmentation_mask = self.canny_edge_detection(segmentation_mask)
-            print("minimum segmentation mask: ", segmentation_mask.min())
-            print("maximum segmentation mask: ", segmentation_mask.max())
             mask_ones = torch.where(segmentation_mask == True, segmentation_mask, 0).int()
             segmentation_mask = torch.stack([mask_ones, ~mask_ones], axis=0)
-            print("shape segmentation mask: ", segmentation_mask.shape)
 
-        if(my_method is not Method.NOSEGMENTATIONCUES):
+        if(my_method is not Method.NOSEGMENTATIONCUES and my_method is not Method.JOINTLEARNING):
             image = torch.concat([segmentation_mask, image], axis=0)
 
         # print(image.shape)
-        sample = {'image': image, 'depth': depth}
+        if(my_method is Method.JOINTLEARNING):
+            sample = {'image': image, 'depth': depth, "segmentation": segmentation_mask}
+        else:
+            sample = {'image': image, 'depth': depth}
 
         return sample
 
@@ -122,9 +128,12 @@ def getTrainingData(batch_size=64, csv_filename="image_files.csv"):
     filename = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']  + csv_filename
 
     # mean, std = get_dataset_stats(csv_filename=filename)  # TODO: only extracts image stats of particular subset but not of the entire dataset
-    mean,std = [0.53277088, 0.49348648, 0.45927282],[0.238986 ,  0.23546355 ,0.24486044] 
+    mean,std = [0.53277088, 0.49348648, 0.45927282],[0.238986 ,  0.23546355 ,0.24486044]
 
-    if(my_method is not Method.NOSEGMENTATIONCUES):
+    if (my_method is Method.JOINTLEARNING):
+        transform_segmentation_mask = transforms.Compose(
+            [Scale(240, Image.NEAREST), CenterCrop([304, 228], [152, 114]), ToTensor()])
+    elif(my_method is not Method.NOSEGMENTATIONCUES):
         transform_segmentation_mask = transforms.Compose([Scale(240, Image.NEAREST),CenterCrop([304,228], [304, 228]), ToTensor()])
     else:
         transform_segmentation_mask = None
@@ -158,7 +167,10 @@ def getTestingData(batch_size=64, csv_filename="images_files.csv"):
     # mean, std = get_dataset_stats(csv_filename=filename) #TODO: only extracts image stats of particular subset but not of the entire dataset
     mean,std = [0.53277088, 0.49348648, 0.45927282],[0.238986 ,  0.23546355 ,0.24486044] 
 
-    if (my_method is not Method.NOSEGMENTATIONCUES):
+    if (my_method is Method.JOINTLEARNING):
+        transform_segmentation_mask = transforms.Compose(
+            [Scale(240, Image.NEAREST), CenterCrop([304, 228], [152, 114]), ToTensor()])
+    elif (my_method is not Method.NOSEGMENTATIONCUES):
         transform_segmentation_mask = transforms.Compose(
             [Scale(240, Image.NEAREST),  CenterCrop([304, 228], [304, 228]),
              ToTensor()])
@@ -180,13 +192,15 @@ def getTestingData(batch_size=64, csv_filename="images_files.csv"):
 
     return dataloader_testing
 
-
 def getValidationData(batch_size=64, csv_filename="image_files.csv"):
     filename = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']  + csv_filename
 
     mean,std = [0.53277088, 0.49348648, 0.45927282],[0.238986 ,  0.23546355 ,0.24486044] 
 
-    if(my_method is not Method.NOSEGMENTATIONCUES):
+    if (my_method is Method.JOINTLEARNING):
+        transform_segmentation_mask = transforms.Compose(
+            [Scale(240, Image.NEAREST), CenterCrop([304, 228], [152, 114]), ToTensor()])
+    elif(my_method is not Method.NOSEGMENTATIONCUES):
         transform_segmentation_mask = transforms.Compose([Scale(240, Image.NEAREST), CenterCrop([304,228], [304, 228]), ToTensor()])
     else:
         transform_segmentation_mask = None

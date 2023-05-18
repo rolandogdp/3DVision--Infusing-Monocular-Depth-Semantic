@@ -88,7 +88,6 @@ def test(test_loader, model, thre):
         batchSize = depth.size(0)
         errors = util.evaluateError(_output, _depth, num_non_nans)
         errorSum = util.addErrors(errorSum, errors, batchSize)
-        averageError = util.averageErrors(errorSum, totalNumber)
 
         edge1_valid = (depth_edge > thre)
         edge2_valid = (output_edge > thre)

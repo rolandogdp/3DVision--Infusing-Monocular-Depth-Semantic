@@ -14,6 +14,7 @@ class Method(Enum):
     SEGMENTATIONMASKGRAYSCALE = 1
     SEGMENTATIONMASKBOUNDARIES = 2
     SEGMENTATIONMASKONEHOT = 3
+    JOINTLEARNING = 4
 
 """
 class MyMethod:
@@ -25,5 +26,4 @@ class MyMethod:
 """
 
 global my_method
-my_method = Method.NOSEGMENTATIONCUES
-
+my_method = Method.JOINTLEARNING
