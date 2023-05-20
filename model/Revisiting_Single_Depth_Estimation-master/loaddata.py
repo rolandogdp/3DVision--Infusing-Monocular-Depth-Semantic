@@ -87,7 +87,7 @@ class depthDataset(Dataset):
             if self.transform_segmentation_mask:
                 segmentation_mask = self.transform_segmentation_mask(segmentation_mask)
             #convert to one-hot-encoded vector
-            segmentation_mask_one_hot_encoded = torch.concat([torch.where(segmentation_mask == 1., segmentation_mask, 0.) for label in range(1,40)], axis=0)
+            segmentation_mask_one_hot_encoded = torch.concat([torch.where(segmentation_mask == label, 1., 0.) for label in range(1,40)], axis=0)
             segmentation_mask = segmentation_mask_one_hot_encoded
         if(my_method is Method.SEGMENTATIONMASKGRAYSCALE):
             segmentation_mask = self.convert_semantic_label_to_rgb(segmentation_mask)
@@ -98,7 +98,7 @@ class depthDataset(Dataset):
             if self.transform_segmentation_mask:
                 segmentation_mask = self.transform_segmentation_mask(segmentation_mask)
             #convert to one-hot-encoded vector
-            segmentation_mask_one_hot_encoded = torch.concat([torch.where(segmentation_mask == 1, segmentation_mask, 0) for label in range(1,40)], axis=0)
+            segmentation_mask_one_hot_encoded = torch.concat([torch.where(segmentation_mask == label, 1., 0.) for label in range(1,40)], axis=0)
             segmentation_mask = segmentation_mask_one_hot_encoded
         elif(my_method is Method.SEGMENTATIONMASKBOUNDARIES):
             segmentation_mask = self.convert_semantic_label_to_rgb(segmentation_mask)
@@ -188,7 +188,7 @@ def getTestingData(batch_size=64, csv_filename="images_files.csv"):
                                                                                                  [152, 114]), ToTensor()]), transform_segmentation_mask=transform_segmentation_mask)
     
     dataloader_testing = DataLoader(transformed_testing, batch_size,
-                                    shuffle=True, num_workers=0, pin_memory=False)
+                                    shuffle=False, num_workers=0, pin_memory=False)
 
     return dataloader_testing
 

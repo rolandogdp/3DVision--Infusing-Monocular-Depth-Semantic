@@ -310,7 +310,7 @@ def validation(batch,model):
         # predict model on first sample from loader
         if(my_method == Method.JOINTLEARNING):
             image, depth, segmentation_mask = batch['image'], batch['depth'], batch["segmentation"]
-            segmentation_mask.to(device)
+            segmentation_mask = segmentation_mask.to(device)
             segmentation_mask = torch.autograd.Variable(segmentation_mask, requires_grad=False)
         else:
             image, depth = batch['image'], batch['depth']
