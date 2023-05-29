@@ -132,7 +132,7 @@ def getTrainingData(batch_size=64, csv_filename="image_files.csv"):
 
     if (my_method is Method.JOINTLEARNING):
         transform_segmentation_mask = transforms.Compose(
-            [Scale(240, Image.NEAREST), CenterCrop([304, 228], [152, 114]), ToTensor()])
+            [Scale(240, Image.NEAREST), CenterCrop([304, 228], [152, 114], Image.NEAREST), ToTensor()])
     elif(my_method is not Method.NOSEGMENTATIONCUES):
         transform_segmentation_mask = transforms.Compose([Scale(240, Image.NEAREST),CenterCrop([304,228], [304, 228]), ToTensor()])
     else:
@@ -169,7 +169,7 @@ def getTestingData(batch_size=64, csv_filename="images_files.csv"):
 
     if (my_method is Method.JOINTLEARNING):
         transform_segmentation_mask = transforms.Compose(
-            [Scale(240, Image.NEAREST), CenterCrop([304, 228], [152, 114]), ToTensor()])
+            [Scale(240, Image.NEAREST), CenterCrop([304, 228], [152, 114], Image.NEAREST), ToTensor()])
     elif (my_method is not Method.NOSEGMENTATIONCUES):
         transform_segmentation_mask = transforms.Compose(
             [Scale(240, Image.NEAREST),  CenterCrop([304, 228], [304, 228]),
@@ -199,7 +199,7 @@ def getValidationData(batch_size=64, csv_filename="image_files.csv"):
 
     if (my_method is Method.JOINTLEARNING):
         transform_segmentation_mask = transforms.Compose(
-            [Scale(240, Image.NEAREST), CenterCrop([304, 228], [152, 114]), ToTensor()])
+            [Scale(240, Image.NEAREST), CenterCrop([304, 228], [152, 114], Image.NEAREST), ToTensor()])
     elif(my_method is not Method.NOSEGMENTATIONCUES):
         transform_segmentation_mask = transforms.Compose([Scale(240, Image.NEAREST), CenterCrop([304,228], [304, 228]), ToTensor()])
     else:

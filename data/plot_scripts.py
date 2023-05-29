@@ -93,6 +93,7 @@ def display_tensor_data_many(tensors, remap=None, titles=None, figsize=(15, 15),
         if(titles[i] == "Segmentation Mask as Grayscale Image"):
             pcm = ax.imshow(tensors[i].permute(1,2,0), cmap="gray")
         else:
+            print(tensors[i].shape)
             pcm = ax.imshow(tensors[i].permute(1, 2, 0))
         ax.set_title(titles[i], fontsize=fontsize)
         divider = make_axes_locatable(ax)

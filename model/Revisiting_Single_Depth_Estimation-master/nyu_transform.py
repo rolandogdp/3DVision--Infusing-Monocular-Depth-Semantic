@@ -119,9 +119,10 @@ class Scale(object):
 
 
 class CenterCrop(object):
-    def __init__(self, size_image, resizing_size): #resizing size was size depth
+    def __init__(self, size_image, resizing_size, resize_method=Image.BICUBIC): #resizing size was size depth
         self.size_image = size_image
         self.resizing_size = resizing_size
+        self.resize_method=resize_method
 
     def __call__(self, image):
         #image, depth = sample['image'], sample['depth']
@@ -131,7 +132,7 @@ class CenterCrop(object):
 
         ow, oh = self.resizing_size
         #depth = depth.resize((ow, oh))
-        image = image.resize((ow, oh))
+        image = image.resize((ow, oh), self.resize_method)
 
         return image #{'image': image, 'depth': depth}
 
