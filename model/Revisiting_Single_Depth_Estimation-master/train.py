@@ -34,6 +34,9 @@ parser.add_argument('--weight-decay', '--wd', default=1e-8, type=float,
 
 parser.add_argument('--batch', default=2, type=int,
                     help='sets the batch size for training')
+
+parser.add_argument('--depth_loss_weight', default=10., type=float,
+                    help='sets the weight of the depth loss in joint training')
 #parser.add_argument('--method', default=0, type=int, help="specify in which format the segmentation maps should be used as an additional input, options NOSEGMENTATIONCUES=0,  SEGMENTATIONMASKGRAYSCALE=1, SEGMENTATIONMASKBOUNDARIES=2, SEGMENTATIONMASKONEHOT=3")
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -111,12 +114,11 @@ def main():
     except Exception as e:
         print("Exception while trying to write headers, got:",str(e))
 
-
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
         start_time_loop = time.time()
         #adjust_learning_rate(optimizer, epoch)
-        train(train_loader, model, optimizer, epoch)
+        train(train_loader, model, optimizer, epoch, args.depth_loss_weight)
         end_time_loop = time.time()
         print(f"EPOCH TRAINED FOR :{end_time_loop-start_time_loop} ")
         res_training = validation(first_batch_of_train_loader,model=model)
@@ -162,7 +164,7 @@ def main():
     save_checkpoint({'state_dict': model.state_dict()}, file)
 
 
-def train(train_loader, model, optimizer, epoch):
+def train(train_loader, model, optimizer, epoch, depth_loss_weight):
     # if(torch.cuda.is_available()):
     #     print("GPU VRAM 1:",torch.cuda.mem_get_info())
     print(f"===== EPOCH:{epoch} ====== ")
@@ -198,16 +200,11 @@ def train(train_loader, model, optimizer, epoch):
 
         if depth.isnan().any():
             print("="*30,"NAN IN INITIAL DEPTH")
-        # print(f"depth:{depth}")
-        depth = depth.to(device)
 
-        # print(f"AFTER TO DEVICE depth:{depth}")
+        depth = depth.to(device)
         image = image.to(device)
 
         image = torch.autograd.Variable(image, requires_grad=False)
-        #indices_with_nans = depth.isnan().nonzero()
-        #mask_out_nans = ~depth.isnan()
-        #depth = torch.masked_select(depth, mask=mask_out_nans, fill = 0)
         mask_out_nans = depth.isnan()
         num_nans = (~mask_out_nans).sum()
         num_nans = torch.autograd.Variable(num_nans, requires_grad=False)
@@ -225,7 +222,6 @@ def train(train_loader, model, optimizer, epoch):
             output_depth = model(image)
 
         output_depth[mask_out_nans] = 0.
-        #output = torch.masked_select(output, mask=mask_out_nans);
 
         depth_grad = get_gradient(depth)
         output_grad = get_gradient(output_depth)
@@ -237,36 +233,16 @@ def train(train_loader, model, optimizer, epoch):
         depth_normal = torch.cat((-depth_grad_dx, -depth_grad_dy, ones), 1)
         output_normal = torch.cat((-output_grad_dx, -output_grad_dy, ones), 1)
 
-        # depth_normal = F.normalize(depth_normal, p=2, dim=1)
-        # output_normal = F.normalize(output_normal, p=2, dim=1)
-        # print(f"output:{output}")
-        # print(f"depth:{depth}")
 
         loss_depth = torch.log(torch.abs(output_depth - depth) + 0.5).sum()/num_nans
-        loss_dx = torch.log(torch.abs(output_grad_dx - depth_grad_dx) + 0.5).sum()/num_nans #.mean()
-        loss_dy = torch.log(torch.abs(output_grad_dy - depth_grad_dy) + 0.5).sum()/num_nans#.mean()
-        loss_normal = torch.abs(1 - cos(output_normal, depth_normal)).sum()/num_nans #.mean()
+        loss_dx = torch.log(torch.abs(output_grad_dx - depth_grad_dx) + 0.5).sum()/num_nans
+        loss_dy = torch.log(torch.abs(output_grad_dy - depth_grad_dy) + 0.5).sum()/num_nans
+        loss_normal = torch.abs(1 - cos(output_normal, depth_normal)).sum()/num_nans
 
-        """
-        loss_depth = (torch.abs(output - depth) + 0.5).sum() / num_nans  # .mean()
-        loss_dx = (torch.abs(output_grad_dx - depth_grad_dx) + 0.5).sum() / num_nans  # .mean()
-        loss_dy = (torch.abs(output_grad_dy - depth_grad_dy) + 0.5).sum() / num_nans  # .mean()
-        loss_normal = torch.abs(1 - cos(output_normal, depth_normal)).sum() / num_nans  # .mean()
-        """
-        # print(f"loss_depth:{loss_depth}")
-        # print(f"loss_dx:{loss_dx}")
-        # print(f"loss_dy:{loss_dy}")
-        # print(f"loss_normal:{loss_normal}")
 
         if (my_method == Method.JOINTLEARNING):
-            print("size output_segmentation: ", output_segmentation.shape)
-            print("size segmentation_mask: ", segmentation_mask.shape)
-
-            print(output_segmentation.min())
-            print(output_segmentation.max())
             loss_segmentation = cross_entropy_loss(output_segmentation, segmentation_mask)
-            print(loss_segmentation)
-            loss = loss_depth + loss_normal + (loss_dx + loss_dy) + loss_segmentation #.mean()
+            loss = depth_loss_weight*loss_depth + loss_normal + (loss_dx + loss_dy) + loss_segmentation
         else:
             loss = loss_depth + loss_normal + (loss_dx + loss_dy)
 
