@@ -32,6 +32,8 @@ parser = argparse.ArgumentParser(description='PyTorch DenseNet Testing')
 parser.add_argument('--batch', default=1, type=int,
                     help='sets the batch size for testing')
 
+parser.add_argument('--selected_segmentation_classes', default="all_classes.csv", type=str, help="For the method Joint Learning and OneHotencoded Vector one can pass a file with the respective segmentation classes, it should be the same file used for the training")
+
 parser.add_argument('--pretrained_model', default="./pretrained_model/model_senet", type=str,
                     help='tar file name of pretrained model')
 
@@ -51,7 +53,7 @@ def main():
 
     batch_size = args.batch
     
-    test_loader = loaddata.getTestingData(batch_size, "test_data.csv")
+    test_loader = loaddata.getTestingData(batch_size, "test_data.csv", args.selected_segmentation_classes)
     test(test_loader, model, 2e-04)
 
 def test(test_loader, model, thre):

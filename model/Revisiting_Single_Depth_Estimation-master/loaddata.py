@@ -33,7 +33,7 @@ def remap_data(np_array,wanted_max=255):
 class depthDataset(Dataset):
     """Face Landmarks dataset."""
 
-    def __init__(self, csv_file, transform_rgb_image=None, transform_depth_image=None, transform_segmentation_mask=None):
+    def __init__(self, csv_file, segmentation_classes_csv=None, transform_rgb_image=None, transform_depth_image=None, transform_segmentation_mask=None):
         self.frame = pd.read_csv(csv_file)
         self.transform_rgb = transform_rgb_image
         self.transform_depth = transform_depth_image
@@ -47,10 +47,12 @@ class depthDataset(Dataset):
             self.canny_edge_detection = CannyEdgeDetection(0.1)
             self.convert_semantic_label_to_rgb = ConvertSemanticLabelsToRGB()
 
+        if(my_method is Method.JOINTLEARNING or my_method is Method.SEGMENTATIONMASKONEHOT):
+            self.semantic_classes = pd.read_csv(segmentation_classes_csv, usecols=["semantic_id"]).values.flatten()
+
     def __getitem__(self, idx):
         image_name = self.absolute_downloads_path + self.frame["ToneMapped"][idx]
         depth_name = self.absolute_downloads_path + self.frame["Depth"][idx]
-        # print("Depthname:",depth_name)
         if(my_method is not Method.NOSEGMENTATIONCUES):
             segmentation_mask_name = self.absolute_downloads_path + self.frame["Segmentation"][idx]
 
@@ -60,8 +62,6 @@ class depthDataset(Dataset):
             image = Image.fromarray(image_h5py)
         else:
             image = Image.open(image_name, "r")
-            if (np.isnan(image).any()):
-                print("are there already nan values in raw rgb data: ", np.isnan(image).any());
 
         if self.transform_rgb:
             image = self.transform_rgb(image)
@@ -87,7 +87,7 @@ class depthDataset(Dataset):
             if self.transform_segmentation_mask:
                 segmentation_mask = self.transform_segmentation_mask(segmentation_mask)
             #convert to one-hot-encoded vector
-            segmentation_mask_one_hot_encoded = torch.concat([torch.where(segmentation_mask == label, 1., 0.) for label in range(1,40)], axis=0)
+            segmentation_mask_one_hot_encoded = torch.concat([torch.where(segmentation_mask == label, 1., 0.) for label in self.semantic_classes], axis=0)
             segmentation_mask = segmentation_mask_one_hot_encoded
         if(my_method is Method.SEGMENTATIONMASKGRAYSCALE):
             segmentation_mask = self.convert_semantic_label_to_rgb(segmentation_mask)
@@ -98,7 +98,7 @@ class depthDataset(Dataset):
             if self.transform_segmentation_mask:
                 segmentation_mask = self.transform_segmentation_mask(segmentation_mask)
             #convert to one-hot-encoded vector
-            segmentation_mask_one_hot_encoded = torch.concat([torch.where(segmentation_mask == label, 1., 0.) for label in range(1,40)], axis=0)
+            segmentation_mask_one_hot_encoded = torch.concat([torch.where(segmentation_mask == label, 1., 0.) for label in self.semantic_classes], axis=0)
             segmentation_mask = segmentation_mask_one_hot_encoded
         elif(my_method is Method.SEGMENTATIONMASKBOUNDARIES):
             segmentation_mask = self.convert_semantic_label_to_rgb(segmentation_mask)
@@ -122,13 +122,19 @@ class depthDataset(Dataset):
     def __len__(self):
         return len(self.frame)
 
-def getTrainingData(batch_size=64, csv_filename="image_files.csv"):
+def getTrainingData(batch_size=64, csv_filename="image_files.csv", segmentation_classes_csv_filename="all_classes.csv"):
     
     print("My method in getTrainingData is: ", my_method)
     filename = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']  + csv_filename
+    segmentation_classes = None
 
-    # mean, std = get_dataset_stats(csv_filename=filename)  # TODO: only extracts image stats of particular subset but not of the entire dataset
+    # mean, std = get_dataset_stats(csv_filename=filename)
     mean,std = [0.53277088, 0.49348648, 0.45927282],[0.238986 ,  0.23546355 ,0.24486044]
+
+    if(my_method is Method.SEGMENTATIONMASKONEHOT or my_method is Method.JOINTLEARNING):
+        segmentation_classes = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] + "../segmentation_classes/" + segmentation_classes_csv_filename
+    else:
+        segmentation_classes = None
 
     if (my_method is Method.JOINTLEARNING):
         transform_segmentation_mask = transforms.Compose(
@@ -140,7 +146,7 @@ def getTrainingData(batch_size=64, csv_filename="image_files.csv"):
 
     print(f"TRAINING DATA Mean and std : mean:{mean} ,std:{std}")
 
-    transformed_training = depthDataset(csv_file=filename,
+    transformed_training = depthDataset(csv_file=filename, segmentation_classes_csv=segmentation_classes,
                                         transform_rgb_image=transforms.Compose([
                                             Scale(240),
                                             CenterCrop([304, 228], [304, 228]),
@@ -156,17 +162,19 @@ def getTrainingData(batch_size=64, csv_filename="image_files.csv"):
 
     return dataloader_training
 
-
-def getTestingData(batch_size=64, csv_filename="images_files.csv"):
+def getTestingData(batch_size=64, csv_filename="images_files.csv", segmentation_classes_csv_filename="all_classes.csv"):
 
 
     filename = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] + csv_filename
 
-    # print(filename)
-
     # mean, std = get_dataset_stats(csv_filename=filename) #TODO: only extracts image stats of particular subset but not of the entire dataset
-    mean,std = [0.53277088, 0.49348648, 0.45927282],[0.238986 ,  0.23546355 ,0.24486044] 
+    mean,std = [0.53277088, 0.49348648, 0.45927282],[0.238986 ,  0.23546355 ,0.24486044]
 
+    if (my_method is Method.SEGMENTATIONMASKONEHOT or my_method is Method.JOINTLEARNING):
+        segmentation_classes = os.environ[
+                                   'THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] + "../segmentation_classes/" + segmentation_classes_csv_filename
+    else:
+        segmentation_classes = None
     if (my_method is Method.JOINTLEARNING):
         transform_segmentation_mask = transforms.Compose(
             [Scale(240, Image.NEAREST), CenterCrop([304, 228], [152, 114], Image.NEAREST), ToTensor()])
@@ -177,7 +185,7 @@ def getTestingData(batch_size=64, csv_filename="images_files.csv"):
     else:
         transform_segmentation_mask = None
 
-    transformed_testing = depthDataset(csv_file=filename,
+    transformed_testing = depthDataset(csv_file=filename,segmentation_classes_csv=segmentation_classes,
                                         transform_rgb_image=transforms.Compose([
                                             Scale(240),
                                             CenterCrop([304, 228], [304, 228]),
@@ -192,11 +200,17 @@ def getTestingData(batch_size=64, csv_filename="images_files.csv"):
 
     return dataloader_testing
 
-def getValidationData(batch_size=64, csv_filename="image_files.csv"):
+def getValidationData(batch_size=64, csv_filename="image_files.csv", segmentation_classes_csv_filename="all_classes.csv"):
     filename = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']  + csv_filename
 
-    mean,std = [0.53277088, 0.49348648, 0.45927282],[0.238986 ,  0.23546355 ,0.24486044] 
+    mean,std = [0.53277088, 0.49348648, 0.45927282],[0.238986 ,  0.23546355 ,0.24486044]
 
+    if (my_method is Method.SEGMENTATIONMASKONEHOT or my_method is Method.JOINTLEARNING):
+        segmentation_classes = os.environ[
+                                   'THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] + "../segmentation_classes/" + segmentation_classes_csv_filename
+
+    else:
+        segmentation_classes = None
     if (my_method is Method.JOINTLEARNING):
         transform_segmentation_mask = transforms.Compose(
             [Scale(240, Image.NEAREST), CenterCrop([304, 228], [152, 114], Image.NEAREST), ToTensor()])
@@ -206,7 +220,7 @@ def getValidationData(batch_size=64, csv_filename="image_files.csv"):
         transform_segmentation_mask = None
 
 
-    transformed_training = depthDataset(csv_file=filename,
+    transformed_training = depthDataset(csv_file=filename, segmentation_classes_csv=segmentation_classes,
                                         transform_rgb_image=transforms.Compose([
                                             Scale(240),
                                             CenterCrop([304, 228], [304, 228]),

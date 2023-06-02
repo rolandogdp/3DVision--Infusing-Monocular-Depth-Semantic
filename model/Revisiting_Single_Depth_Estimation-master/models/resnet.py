@@ -198,7 +198,7 @@ def resnet34(pretrained=False, **kwargs):
     return model
 
 
-def resnet50(pretrained=True, **kwargs):
+def resnet50(num_segmentation_classes, pretrained=True, **kwargs):
     """Constructs a ResNet-50 model.
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
@@ -211,14 +211,15 @@ def resnet50(pretrained=True, **kwargs):
         weights_for_first_convolution = state_directory_of_pretrained_model.get("conv1.weight")
 
         #print(weights_for_first_convolution.dtype)
-        #print(weights_for_first_convolution.size())
+        print(weights_for_first_convolution.shape)
 
         if (my_method is Method.SEGMENTATIONMASKGRAYSCALE):
             num_input_channels = 4
         elif (my_method is Method.SEGMENTATIONMASKBOUNDARIES):
             num_input_channels = 5
         elif (my_method is Method.SEGMENTATIONMASKONEHOT):
-            num_input_channels = 42
+            num_input_channels = num_segmentation_classes + 3
+            print(num_input_channels)
         else:
             num_input_channels = 3
 

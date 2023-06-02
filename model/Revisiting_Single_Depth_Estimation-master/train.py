@@ -32,6 +32,8 @@ parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
 parser.add_argument('--weight-decay', '--wd', default=1e-8, type=float,
                     help='weight decay (default: 1e-8)')
 
+parser.add_argument('--selected_segmentation_classes', default="all_classes.csv", type=str, help="For the method Joint Learning and OneHotencoded Vector one can pass a file with the respective segmentation classes")
+
 parser.add_argument('--batch', default=2, type=int,
                     help='sets the batch size for training')
 
@@ -41,9 +43,9 @@ parser.add_argument('--depth_loss_weight', default=10., type=float,
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-def define_model(is_resnet, is_densenet, is_senet, pretrained = True):
+def define_model(is_resnet, is_densenet, is_senet, num_segmentation_classes, pretrained = True):
     if is_resnet:
-        original_model = resnet.resnet50(pretrained=pretrained)
+        original_model = resnet.resnet50(pretrained=pretrained, num_segmentation_classes=num_segmentation_classes)
         Encoder = modules.E_resnet(original_model)
         if my_method is Method.JOINTLEARNING:
             model = net.joint_model(Encoder, num_features=2048, block_channel = [256, 512, 1024, 2048])
@@ -66,7 +68,10 @@ def main():
     args = parser.parse_args()
     #set_method.mymethod(args.method) #initialize the desired method
     print("What is the value of my_method after initializing: ", my_method)
-    model = define_model(is_resnet=True, is_densenet=False, is_senet=False, pretrained=True)
+    csv_file_reader = open(os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] + "../segmentation_classes/" + args.selected_segmentation_classes)
+    num_segmentation_classes = sum(1 for line in csv_file_reader) -1
+
+    model = define_model(is_resnet=True, is_densenet=False, is_senet=False, num_segmentation_classes=num_segmentation_classes, pretrained=True)
     # print("GPU VRAM model defined:",torch.cuda.mem_get_info())
     now = datetime.datetime.now()
     filename_date = f".{str(now.strftime('%m-%d-%Y-%H-%M-%S'))}"
@@ -78,25 +83,22 @@ def main():
     else:
         print("CUDA DETECTED, RUNNING ON GPU !")
         model = model.cuda()
-        # batch_size = 4
         batch_size = args.batch
-    # print("GPU VRAM ifs:",torch.cuda.mem_get_info())
 
     cudnn.benchmark = True
     optimizer = torch.optim.Adam(model.parameters(), args.lr, weight_decay=args.weight_decay)
-    # print("GPU VRAM optimizer:",torch.cuda.mem_get_info())
     print("Starting to load the data.")
-    train_loader = loaddata.getTrainingData(batch_size,"train_data.csv")
+    train_loader = loaddata.getTrainingData(batch_size,"train_data.csv", args.selected_segmentation_classes)
     first_batch_of_train_loader = next(iter(train_loader))
 
-    validation_loader = loaddata.getValidationData(1,"validation_data.csv")
+    validation_loader = loaddata.getValidationData(1,"validation_data.csv", args.selected_segmentation_classes)
     first_batch_of_validation_loader = next(iter(validation_loader))
     print("DataLoader finished loading")
     
     training_depth_res = []
     validation_depth_res = []
-    filename_train = f"train-{filename_date}-{my_method}"
-    filename_val = f"validation-{filename_date}-{my_method}"
+    filename_train = f"train-{filename_date}-{my_method}--{args.selected_segmentation_classes}"
+    filename_val = f"validation-{filename_date}-{my_method}--{args.selected_segmentation_classes}"
 
     if(my_method == Method.JOINTLEARNING):
         keys = ["loss_depth", "loss_segmentation", "loss_dx","loss_dy","loss_normal","loss"]
@@ -143,7 +145,7 @@ def main():
             
             print("Saved validation data.")
         if epoch % 2 == 0:
-            file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}-{epoch}--{my_method}.pth.tar"
+            file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}-{epoch}--{my_method}--{args.selected_segmentation_classes}.pth.tar"
 
             print("Saving checkpoint to:", file)
             save_checkpoint({'state_dict': model.state_dict()}, file)
@@ -159,7 +161,7 @@ def main():
     end_time = time.time()
     print(f"TRAINED FOR:{end_time-start_time} ")
 
-    file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}-{my_method}-final.pth.tar"
+    file = f"{os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'}checkpointapple-{filename_date}-{my_method}-{args.selected_segmentation_classes}.final.pth.tar"
     print("Saving checkpoint to:", file)
     save_checkpoint({'state_dict': model.state_dict()}, file)
 

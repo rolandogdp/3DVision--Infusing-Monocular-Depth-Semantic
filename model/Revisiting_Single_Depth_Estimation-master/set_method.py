@@ -26,4 +26,4 @@ class MyMethod:
 """
 
 global my_method
-my_method = Method.JOINTLEARNING
+my_method = Method.SEGMENTATIONMASKONEHOT

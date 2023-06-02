@@ -55,16 +55,20 @@ class ConvertSemanticLabelsToRGB(object):
 
 class ConvertProbabilitiesToLabels(object):
 
-    def __init__(self):
+    def __init__(self, segmentation_classes_csv="all_classes.csv"):
         path = os.path.abspath(os.path.dirname(__file__))
-        self.mappings = pd.read_csv(path+"/semantic_label_descs.csv",usecols=["semantic_color_r", "semantic_color_g", "semantic_color_b"])
+        self.mappings = pd.read_csv(path+"/semantic_label_descs.csv", usecols=["semantic_color_r", "semantic_color_g", "semantic_color_b"])
         self.softmax = torch.nn.Softmax(dim=1)
+        self.segmentation_classes = pd.read_csv(path+"/segmentation_classes/"+segmentation_classes_csv, usecols=["semantic_id"])
 
     def __call__(self, segmentation_pediction):
-        return self.convert_propability_to_labels(segmentation_pediction)
+        return self.convert_probability_to_labels(segmentation_pediction)
 
     def convert_probability_to_labels(self, segmentation_prediction):
         segmentation_probabilities = self.softmax(segmentation_prediction)
-        segmentation_labels = torch.argmax(segmentation_probabilities, dim=1) + 1
-        return segmentation_labels
+        segmentation_labels = torch.argmax(segmentation_probabilities, dim=1)
+        return self.segmentation_classes.iloc[segmentation_labels].values.flatten()
+
+
+
 
