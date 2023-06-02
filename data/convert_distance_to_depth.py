@@ -30,6 +30,7 @@ class ConvertSemanticLabelsToRGB(object):
         self.mappings = pd.read_csv(path+"/semantic_label_descs.csv",usecols=["semantic_color_r", "semantic_color_g", "semantic_color_b"])
 
     def __call__(self, image):
+
         if _is_pil_image(image):
             return self.convert_semantic_label_to_rgb(image)
         elif _is_numpy_image(image):
@@ -37,13 +38,13 @@ class ConvertSemanticLabelsToRGB(object):
         else:
             return self.convert_semantic_label_to_rgb_tensor(image)
 
-    def convert_semantic_label_to_rgb(self, image):
-        rgb_image = np.empty(shape=(3, image.size[1], image.size[0]), dtype=np.uint8)
-        image = np.asarray(image)
-        rgb_image[:, image == -1] = [[255], [255], [255]]  # white
-        for label in range(1, 40):
-            rgb_image[:, image == label] = np.expand_dims(self.mappings.iloc[label - 1], -1)
 
+    def convert_semantic_label_to_rgb(self, image):
+        rgb_image = np.empty(shape=(image.size[1], image.size[0], 3), dtype=np.uint8)
+        image = np.asarray(image)
+        rgb_image[image==-1, :] = [255, 255, 255]  # white
+        for label in range(1, 40):
+            rgb_image[image==label, :] = self.mappings.iloc[label - 1]
         return Image.fromarray(rgb_image)
 
     def convert_semantic_label_to_rgb_tensor(self, image):

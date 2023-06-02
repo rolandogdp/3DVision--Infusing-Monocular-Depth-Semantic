@@ -90,7 +90,7 @@ class depthDataset(Dataset):
             segmentation_mask_one_hot_encoded = torch.concat([torch.where(segmentation_mask == label, 1., 0.) for label in self.semantic_classes], axis=0)
             segmentation_mask = segmentation_mask_one_hot_encoded
         if(my_method is Method.SEGMENTATIONMASKGRAYSCALE):
-            segmentation_mask = self.convert_semantic_label_to_rgb(segmentation_mask)
+            segmentation_mask_b = self.convert_semantic_label_to_rgb(segmentation_mask)
             segmentation_mask = self.grayscale_conversion(segmentation_mask)
             if self.transform_segmentation_mask:
                 segmentation_mask = self.transform_segmentation_mask(segmentation_mask)

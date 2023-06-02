@@ -106,17 +106,17 @@ class Bottleneck(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, block, layers, num_classes=1000):
+    def __init__(self, block, layers, num_segmentation_classes, num_classes=1000):
         self.inplanes = 64
         super(ResNet, self).__init__()
 
         num_input_channels = 3 #default
         if(my_method is Method.SEGMENTATIONMASKGRAYSCALE):
-            num_input_channels =  4
+            num_input_channels = 4
         elif(my_method is Method.SEGMENTATIONMASKBOUNDARIES):
             num_input_channels = 5
         elif(my_method is Method.SEGMENTATIONMASKONEHOT):
-            num_input_channels = 42  #TODO: Figure out the number of classes to be used
+            num_input_channels = num_segmentation_classes + 3#TODO: Figure out the number of classes to be used
         else:
             num_input_channels = 3
 
@@ -203,7 +203,8 @@ def resnet50(num_segmentation_classes, pretrained=True, **kwargs):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
+    model = ResNet(Bottleneck, [3, 4, 6, 3], num_segmentation_classes, **kwargs)
+
     if pretrained:
 
         state_directory_of_pretrained_model = model_zoo.load_url(model_urls['resnet50'], 'pretrained_model/encoder')
@@ -211,7 +212,6 @@ def resnet50(num_segmentation_classes, pretrained=True, **kwargs):
         weights_for_first_convolution = state_directory_of_pretrained_model.get("conv1.weight")
 
         #print(weights_for_first_convolution.dtype)
-        print(weights_for_first_convolution.shape)
 
         if (my_method is Method.SEGMENTATIONMASKGRAYSCALE):
             num_input_channels = 4
@@ -219,7 +219,6 @@ def resnet50(num_segmentation_classes, pretrained=True, **kwargs):
             num_input_channels = 5
         elif (my_method is Method.SEGMENTATIONMASKONEHOT):
             num_input_channels = num_segmentation_classes + 3
-            print(num_input_channels)
         else:
             num_input_channels = 3
 

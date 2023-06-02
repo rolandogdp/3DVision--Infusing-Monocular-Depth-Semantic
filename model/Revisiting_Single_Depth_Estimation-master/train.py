@@ -45,7 +45,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def define_model(is_resnet, is_densenet, is_senet, num_segmentation_classes, pretrained = True):
     if is_resnet:
-        original_model = resnet.resnet50(pretrained=pretrained, num_segmentation_classes=num_segmentation_classes)
+        original_model = resnet.resnet50(num_segmentation_classes=num_segmentation_classes, pretrained=pretrained)
         Encoder = modules.E_resnet(original_model)
         if my_method is Method.JOINTLEARNING:
             model = net.joint_model(Encoder, num_features=2048, block_channel = [256, 512, 1024, 2048])
@@ -69,7 +69,7 @@ def main():
     #set_method.mymethod(args.method) #initialize the desired method
     print("What is the value of my_method after initializing: ", my_method)
     csv_file_reader = open(os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] + "../segmentation_classes/" + args.selected_segmentation_classes)
-    num_segmentation_classes = sum(1 for line in csv_file_reader) -1
+    num_segmentation_classes = sum(1 for line in csv_file_reader) - 1
 
     model = define_model(is_resnet=True, is_densenet=False, is_senet=False, num_segmentation_classes=num_segmentation_classes, pretrained=True)
     # print("GPU VRAM model defined:",torch.cuda.mem_get_info())
