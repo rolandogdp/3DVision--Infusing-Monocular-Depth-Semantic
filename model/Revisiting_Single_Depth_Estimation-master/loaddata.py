@@ -132,7 +132,8 @@ def getTrainingData(batch_size=64, csv_filename="image_files.csv", segmentation_
     mean,std = [0.53277088, 0.49348648, 0.45927282],[0.238986 ,  0.23546355 ,0.24486044]
 
     if(my_method is Method.SEGMENTATIONMASKONEHOT or my_method is Method.JOINTLEARNING):
-        segmentation_classes = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] + "../segmentation_classes/" + segmentation_classes_csv_filename
+        data_path = os.path.abspath(os.path.dirname("./../../data/"))
+        segmentation_classes = data_path + "/segmentation_classes/" + segmentation_classes_csv_filename
     else:
         segmentation_classes = None
 
@@ -171,8 +172,8 @@ def getTestingData(batch_size=64, csv_filename="images_files.csv", segmentation_
     mean,std = [0.53277088, 0.49348648, 0.45927282],[0.238986 ,  0.23546355 ,0.24486044]
 
     if (my_method is Method.SEGMENTATIONMASKONEHOT or my_method is Method.JOINTLEARNING):
-        segmentation_classes = os.environ[
-                                   'THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] + "../segmentation_classes/" + segmentation_classes_csv_filename
+        data_path = os.path.abspath(os.path.dirname("./../../data/"))
+        segmentation_classes = data_path + "/segmentation_classes/" + segmentation_classes_csv_filename
     else:
         segmentation_classes = None
     if (my_method is Method.JOINTLEARNING):
@@ -206,8 +207,8 @@ def getValidationData(batch_size=64, csv_filename="image_files.csv", segmentatio
     mean,std = [0.53277088, 0.49348648, 0.45927282],[0.238986 ,  0.23546355 ,0.24486044]
 
     if (my_method is Method.SEGMENTATIONMASKONEHOT or my_method is Method.JOINTLEARNING):
-        segmentation_classes = os.environ[
-                                   'THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] + "../segmentation_classes/" + segmentation_classes_csv_filename
+        data_path = os.path.abspath(os.path.dirname("./../../data/"))
+        segmentation_classes = data_path + "/segmentation_classes/" + segmentation_classes_csv_filename
 
     else:
         segmentation_classes = None

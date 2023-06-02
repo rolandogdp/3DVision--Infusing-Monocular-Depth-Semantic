@@ -68,7 +68,8 @@ def main():
     args = parser.parse_args()
     #set_method.mymethod(args.method) #initialize the desired method
     print("What is the value of my_method after initializing: ", my_method)
-    csv_file_reader = open(os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] + "../segmentation_classes/" + args.selected_segmentation_classes)
+    data_path = os.path.abspath(os.path.dirname("./../../data/"))
+    csv_file_reader = open(data_path+"/segmentation_classes/" + args.selected_segmentation_classes)
     num_segmentation_classes = sum(1 for line in csv_file_reader) - 1
 
     model = define_model(is_resnet=True, is_densenet=False, is_senet=False, num_segmentation_classes=num_segmentation_classes, pretrained=True)
