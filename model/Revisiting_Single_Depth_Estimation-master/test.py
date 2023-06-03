@@ -54,7 +54,7 @@ def main():
     batch_size = args.batch
     
     test_loader = loaddata.getTestingData(batch_size, "test_data.csv", args.selected_segmentation_classes)
-    test(test_loader, model, 2e-04)
+    test(test_loader, model, 1.5)
 
 def test(test_loader, model, thre):
     model.eval()
@@ -231,11 +231,10 @@ def test_sample_joint(test_loader, model, thre):
     return depth_results,sgmentation_results  
 
 def edge_detection(depth,channel_inputs=1):
-    get_edge = sobel.Sobel(channel_inputs).to(device) #.cuda()
+    get_edge = sobel.Sobel(channel_inputs).to(device)
 
     edge_xy = get_edge(depth)
-    edge_sobel = torch.pow(edge_xy[:, 0, :, :], 2) + \
-        torch.pow(edge_xy[:, 1, :, :], 2)
+    edge_sobel = torch.pow(edge_xy[:, 0, :, :], 2) + torch.pow(edge_xy[:, 1, :, :], 2)
     edge_sobel = torch.sqrt(edge_sobel)
 
     return edge_sobel

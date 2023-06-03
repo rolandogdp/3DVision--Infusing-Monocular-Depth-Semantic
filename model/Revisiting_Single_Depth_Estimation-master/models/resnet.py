@@ -110,7 +110,6 @@ class ResNet(nn.Module):
         self.inplanes = 64
         super(ResNet, self).__init__()
 
-        num_input_channels = 3 #default
         if(my_method is Method.SEGMENTATIONMASKGRAYSCALE):
             num_input_channels = 4
         elif(my_method is Method.SEGMENTATIONMASKBOUNDARIES):

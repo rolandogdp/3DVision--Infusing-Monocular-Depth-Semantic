@@ -68,7 +68,9 @@ class ConvertProbabilitiesToLabels(object):
     def convert_probability_to_labels(self, segmentation_prediction):
         segmentation_probabilities = self.softmax(segmentation_prediction)
         segmentation_labels = torch.argmax(segmentation_probabilities, dim=1)
-        return self.segmentation_classes.iloc[segmentation_labels].values.flatten()
+        class_labels = self.segmentation_classes.iloc[segmentation_labels.reshape(-1)].values.flatten().reshape(
+            segmentation_labels.shape)
+        return torch.from_numpy(class_labels)
 
 
 
