@@ -1,0 +1,8 @@
+semantic_id,semantic_name,
+1           , wall
+9           , window
+10          , bookshelf
+22          , ceiling
+31          , person
+36          , bathtub
+38          , otherstructure

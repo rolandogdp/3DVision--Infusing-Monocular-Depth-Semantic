@@ -1,0 +1,23 @@
+semantic_id,semantic_name,
+3           , cabinet
+4           , bed
+5           , chair
+6           , sofa
+7           , table
+8           , door
+9           , window
+10          , bookshelf
+12          , counter
+14          , desk
+15          , shelves
+17          , dresser
+19          , mirror
+24          , refrigerator
+25          , television
+29          , box
+31          , person
+33          , toilet
+34          , sink
+36          , bathtub
+38          , otherstructure
+39          , otherfurniture
