@@ -94,7 +94,7 @@ def test(test_loader, model, thre):
         edge1_valid = (depth_edge > thre)
         edge2_valid = (output_edge > thre)
 
-        nvalid = np.sum(torch.eq(edge1_valid, edge2_valid).float().data.cpu().numpy())
+        nvalid = np.sum(torch.ne(edge1_valid, edge2_valid).float().data.cpu().numpy())
         A = nvalid / num_non_nans#(depth.size(2)*depth.size(3)) #how many pixel are the same in edge map in percentage
 
         nvalid2 = np.sum(((edge1_valid + edge2_valid) ==2).float().data.cpu().numpy()) #number of true positive
