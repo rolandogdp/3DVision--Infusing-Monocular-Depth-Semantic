@@ -41,7 +41,10 @@ def main():
     global args
     args = parser.parse_args()
 
-    model = define_model(is_resnet=True, is_densenet=False, is_senet=False, pretrained=False)
+    data_path = os.path.abspath(os.path.dirname("./../../data/"))
+    csv_file_reader = open(data_path + "/segmentation_classes/" + args.selected_segmentation_classes)
+    num_segmentation_classes = sum(1 for line in csv_file_reader) - 1
+    model = define_model(is_resnet=True, is_densenet=False, is_senet=False, num_segmentation_classes=num_segmentation_classes, pretrained=False)
 
     pretrained_model_path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +'../outputs/checkpoints/'
     pretrained_model = args.pretrained_model
@@ -72,7 +75,7 @@ def test(test_loader, model, thre):
     for i, sample_batched in enumerate(test_loader):
         image, depth = sample_batched['image'], sample_batched['depth']
 
-        if(torch.cuda.is_availabl()):
+        if(torch.cuda.is_available()):
             depth = depth.cuda(non_blocking=True) #
             image = image.cuda()
 
@@ -94,10 +97,16 @@ def test(test_loader, model, thre):
         edge1_valid = (depth_edge > thre)
         edge2_valid = (output_edge > thre)
 
+        print("max GT edge map: ", edge1_valid.max())
+        print("min GT edge map: ", edge1_valid.min())
+        print("max pred edge map: ", edge2_valid.max())
+        print("min pred edge map: ", edge2_valid.min())
+
         nvalid = np.sum(torch.ne(edge1_valid, edge2_valid).float().data.cpu().numpy())
         A = nvalid / num_non_nans#(depth.size(2)*depth.size(3)) #how many pixel are the same in edge map in percentage
 
-        nvalid2 = np.sum(((edge1_valid + edge2_valid) ==2).float().data.cpu().numpy()) #number of true positive
+        nvalid2 = np.sum(torch.logical_and(edge1_valid, edge2_valid).float().data.cpu().numpy()) #number of true positive
+
         P = nvalid2/(np.sum(edge2_valid.data.cpu().numpy())) #precision
         R = nvalid2/(np.sum(edge1_valid.data.cpu().numpy())) #recall
 
