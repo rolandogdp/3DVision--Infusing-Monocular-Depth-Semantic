@@ -1,0 +1,2 @@
+,Depth,Segmentation,ToneMapped
+0,Final_Test_Data/frame.0006.depth_meters.hdf5,Final_Test_Data/frame.0006.semantic.hdf5,Final_Test_Data/frame.0006.tonemap.jpg
