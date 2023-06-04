@@ -90,7 +90,7 @@ class depthDataset(Dataset):
             segmentation_mask_one_hot_encoded = torch.concat([torch.where(segmentation_mask == label, 1., 0.) for label in self.semantic_classes], axis=0)
             segmentation_mask = segmentation_mask_one_hot_encoded
         if(my_method is Method.SEGMENTATIONMASKGRAYSCALE):
-            segmentation_mask_b = self.convert_semantic_label_to_rgb(segmentation_mask)
+            segmentation_mask = self.convert_semantic_label_to_rgb(segmentation_mask)
             segmentation_mask = self.grayscale_conversion(segmentation_mask)
             if self.transform_segmentation_mask:
                 segmentation_mask = self.transform_segmentation_mask(segmentation_mask)
@@ -164,7 +164,6 @@ def getTrainingData(batch_size=64, csv_filename="image_files.csv", segmentation_
     return dataloader_training
 
 def getTestingData(batch_size=64, csv_filename="images_files.csv", segmentation_classes_csv_filename="all_classes.csv"):
-
 
     filename = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] + csv_filename
 
