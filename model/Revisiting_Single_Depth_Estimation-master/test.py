@@ -161,6 +161,8 @@ def test(test_loader, model, thre):
 def test_sample_joint(test_loader, model, thre): 
     model.eval()
     totalNumber = len(test_loader)
+    tresholds = [0.25, 0.5, 1.0, 1.25]
+    tresholds_res = [ [0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0] ]
 
     Ae = 0
     Pe = 0
@@ -200,36 +202,45 @@ def test_sample_joint(test_loader, model, thre):
         batchSize = depth.size(0)
         errors = util.evaluateError(_output, _depth, num_non_nans)
         errorSum = util.addErrors(errorSum, errors, batchSize)
-        edge1_valid = (depth_edge > thre)
-        edge2_valid = (output_edge > thre)
+        for tresh_index,res in enumerate(tresholds_res):
+            thre = tresholds[tresh_index]
+            edge1_valid = (depth_edge > thre)
+            edge2_valid = (output_edge > thre)
 
-        nvalid = np.sum(torch.eq(edge1_valid, edge2_valid).float().data.cpu().numpy())
-        A = nvalid / num_non_nans#(depth.size(2)*depth.size(3)) #how many pixel are the same in edge map in percentage
+            nvalid = np.sum(torch.eq(edge1_valid, edge2_valid).float().data.cpu().numpy())
+            A = nvalid / num_non_nans#(depth.size(2)*depth.size(3)) #how many pixel are the same in edge map in percentage
 
-        nvalid2 = np.sum(((edge1_valid + edge2_valid) ==2).float().data.cpu().numpy()) #number of true positive
-        P = nvalid2/(np.sum(edge2_valid.data.cpu().numpy())) #precision
-        R = nvalid2/(np.sum(edge1_valid.data.cpu().numpy())) #recall
+            nvalid2 = np.sum(((edge1_valid + edge2_valid) ==2).float().data.cpu().numpy()) #number of true positive
+            P = nvalid2/(np.sum(edge2_valid.data.cpu().numpy())) #precision
+            R = nvalid2/(np.sum(edge1_valid.data.cpu().numpy())) #recall
 
-        epsilon = 10**(-10)
-        F = (2 * P * R) / (P + R + epsilon) #precision and recall?
+            epsilon = 10**(-10)
+            F = (2 * P * R) / (P + R + epsilon) #precision and recall?
 
-        Ae += A
-        Pe += P
-        Re += R
-        Fe += F
+            res[0] += A
+            res[1] += P
+            res[2] += R
+            res[3] += F
 
-    Av = (Ae / totalNumber).item()
-    Pv = Pe / totalNumber
-    Rv = Re / totalNumber
-    Fv = Fe / totalNumber
-    print(Av)
+            # Ae += A
+            # Pe += P
+            # Re += R
+            # Fe += F
+    segmentationError_all = {}
+    for tresh_index, res in enumerate(tresholds_res):
+        Av = (res[0] / totalNumber).item()
+        Pv = res[1] / totalNumber
+        Rv = res[2] / totalNumber
+        Fv = res[3] / totalNumber
+        # print(Av)
 
-    segmentationError = {'Precision_of_EdgeMap': Pv, 'Recall_of_EdgeMap': Rv, 'F_Measure': Fv, 'Relative_EdgeMap_Error': Av}
+        segmentationError = {f'Precision_of_EdgeMap-{tresholds[tresh_index]}': Pv, f'Recall_of_EdgeMap-{tresholds[tresh_index]}': Rv, f'F_Measure-{tresholds[tresh_index]}': Fv, f'Relative_EdgeMap_Error-{tresholds[tresh_index]}': Av}
+        segmentationError_all.update(segmentationError)
     averageError = util.averageErrors(errorSum, totalNumber)
     averageError['RMSE'] = np.sqrt(averageError['MSE'])
 
     print(averageError)
-    print(segmentationError)
+    print(segmentationError_all)
 
     now = datetime.datetime.now()
     filename_date = f".{str(now.strftime('%m-%d-%Y-%H-%M-%S'))}"
@@ -238,7 +249,7 @@ def test_sample_joint(test_loader, model, thre):
     keys = {'MSE', 'RMSE', 'ABS_REL', 'LG10',
                     'MAE', 'DELTA1', 'DELTA2', 'DELTA3', 'Precision_of_EdgeMap', 'Recall_of_EdgeMap', 'F_Measure', 'Relative_EdgeMap_Error'}
 
-    averageError.update(segmentationError)
+    averageError.update(segmentationError_all)
     print(type(averageError))
     print(averageError)
 

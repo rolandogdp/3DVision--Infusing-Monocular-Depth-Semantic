@@ -58,7 +58,7 @@ def evaluateError(_output, _target, nValidElement):
     if (nValidElement.data.cpu().numpy() > 0):
         diffMatrix = torch.abs(_output - _target)
 
-        print("shape diffMatrix: ", diffMatrix.shape)
+        # print("shape diffMatrix: ", diffMatrix.shape)
 
 
         errors['MSE'] = torch.sum(torch.pow(diffMatrix, 2)) / nValidElement
