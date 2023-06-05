@@ -211,7 +211,7 @@ class R_classification(nn.Module):
         x1 = F.relu(x1)
 
         x2 = self.conv2(x1)
-        print(x2.shape)
+        # print(x2.shape)
         #x3 = self.softmax(x2)
 
         return x2

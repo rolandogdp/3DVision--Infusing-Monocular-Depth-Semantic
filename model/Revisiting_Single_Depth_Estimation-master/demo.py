@@ -1,19 +1,9 @@
-import argparse
 import torch
-import torch.nn.parallel
-
 from models import modules, net, resnet, densenet, senet
 import numpy as np
-import loaddata_demo as loaddata
-import pdb
-
-import matplotlib.image
 import matplotlib.pyplot as plt
-# plt.set_cmap("jet")
-
 import os
 import sys
-
 from set_method import my_method, Method
 
 
@@ -34,7 +24,7 @@ from data.plot_scripts import *
 
 from set_method import *
 
-from test import edge_detection
+# from test import edge_detection
 
 import warnings
 
