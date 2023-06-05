@@ -1,0 +1,7 @@
+Depth,Segmentation,ToneMapped
+Final_Test_Data/frame.0090.depth_meters.hdf5,Final_Test_Data/frame.0090.semantic.hdf5,Final_Test_Data/frame.0090.tonemap.jpg
+ai_001_007/images/scene_cam_00_geometry_hdf5/frame.0006.depth_meters.hdf5,ai_001_007/images/scene_cam_00_geometry_hdf5/frame.0006.semantic.hdf5,ai_001_007/images/scene_cam_00_final_preview/frame.0006.tonemap.jpg
+ai_009_005/images/scene_cam_01_geometry_hdf5/frame.0042.depth_meters.hdf5,ai_009_005/images/scene_cam_01_geometry_hdf5/frame.0042.semantic.hdf5,ai_009_005/images/scene_cam_01_final_preview/frame.0042.tonemap.jpg
+ai_010_006/images/scene_cam_00_geometry_hdf5/frame.0001.depth_meters.hdf5,ai_010_006/images/scene_cam_00_geometry_hdf5/frame.0001.semantic.hdf5,ai_010_006/images/scene_cam_00_final_preview/frame.0001.tonemap.jpg
+ai_015_008/images/scene_cam_00_geometry_hdf5/frame.0044.depth_meters.hdf5,ai_015_008/images/scene_cam_00_geometry_hdf5/frame.0044.semantic.hdf5,ai_015_008/images/scene_cam_00_final_preview/frame.0044.tonemap.jpg
+
