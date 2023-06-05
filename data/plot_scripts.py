@@ -5,8 +5,9 @@ import os
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-""" display single image """
 def display_tensor_data(tensor, remap=None):
+    """ display single image """
+
     if remap != None:
         tensor = remap(tensor)
     fig, (ax) = plt.subplots(1)
@@ -15,13 +16,15 @@ def display_tensor_data(tensor, remap=None):
     plt.show()
 
 def compute_error(ground_truth_depth, depth_output):
+    """Computes the error between the ground truth and predictions under threshold of 0.6"""
     error = torch.abs(ground_truth_depth - depth_output);
     thr = 0.6;
     error[error < thr] = 0
     return error
 
-""" display a ground truth, output depth and the error plot """
 def display_error_plots(ground_truth_depth, depth_output):
+    """ display a ground truth, output depth and the error plot """
+
     error = compute_error(ground_truth_depth, depth_output)
 
     min_scale = min(ground_truth_depth.min(), depth_output.min())
@@ -47,10 +50,10 @@ def display_error_plots(ground_truth_depth, depth_output):
 
 
 
-""" 
-plot ground truth, depth_output, rgb_image and segmentation 
-"""
 def plot(ground_truth_depth, depth_output, rgb_image, plot_name=None):
+    """ 
+    plot ground truth, depth_output, rgb_image and segmentation 
+    """
     error = compute_error(ground_truth_depth, depth_output)
 
     min_scale = min(ground_truth_depth.min(), depth_output.min())
@@ -78,8 +81,8 @@ def plot(ground_truth_depth, depth_output, rgb_image, plot_name=None):
     if plot_name is not None:
         fig.savefig(os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']+"../plots/validation_error_plots/"+plot_name+".png", bbox_inches='tight')
 
-""" display many tensor data"""
 def display_tensor_data_many(tensors, remap=None, titles=None, figsize=(15, 15), fontsize=12, plot_name=None):
+    """ display many tensor data"""
     if titles is None:
         titles = ["Model Prediction", "Ground Truth", "RGB Input"]
     nb = len(titles)
@@ -105,14 +108,15 @@ def display_tensor_data_many(tensors, remap=None, titles=None, figsize=(15, 15),
     if plot_name is not None:
         fig.savefig(os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']+"../plots/validation_error_plots/"+plot_name+".png", bbox_inches='tight')
 
-""" display image pairs"""
 def display_image_pairs(rgb_image_tensor, segmentation):
+    """ display image pairs"""
     fig, axs = plt.subplots(2)
     axs[0].imshow(rgb_image_tensor.permute(1, 2, 0))
     axs[1].imshow(segmentation)
     plt.show()
 
 def denormalize(image_input):
+    """Function used to undo the normalization done during the data loading."""
     mean, std = [0.53277088, 0.49348648, 0.45927282], [0.238986, 0.23546355, 0.24486044]
     image = image_input.clone().detach()
     for channel in range(0, image.shape[0]):
@@ -121,6 +125,7 @@ def denormalize(image_input):
 
 
 def plot_training_progress(dataframe, title=None, plot_name=None):
+    """Plot used during internal training to see the different loss evolutions."""
     fig = plt.figure()
     ax = fig.gca()
     x = list(range(dataframe.shape[0]))
