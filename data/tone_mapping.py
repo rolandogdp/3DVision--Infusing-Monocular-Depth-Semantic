@@ -1,3 +1,4 @@
+"""Contains the functions to tonemap the images. Code taken/adapted from official Hypersim repo. """
 import pandas as pd
 import h5py
 import numpy as np
@@ -5,6 +6,16 @@ from PIL import Image
 
 
 def tonemapping_single_image(self, rgb_image, render_entity_id):
+    """This function tonemaps a single image.
+    Code adapted from official Hypersim repo.
+
+    Args:
+        rgb_image (numpy array): the rgb image to tonemap.
+        render_entity_id (np array): the render entity id of the image.
+
+    Returns:
+        _type_: _description_
+    """    
     print(np.all(render_entity_id != 0))
     assert np.all(render_entity_id != 0) #all(render_entity_id != 0)
 

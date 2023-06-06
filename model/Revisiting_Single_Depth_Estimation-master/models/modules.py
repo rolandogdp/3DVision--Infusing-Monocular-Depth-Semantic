@@ -184,6 +184,8 @@ class MFF(nn.Module):
 
 
 class R_classification(nn.Module):
+    """Model used during joint training 
+    """
     def __init__(self, block_channel):
         super(R_classification, self).__init__()
 

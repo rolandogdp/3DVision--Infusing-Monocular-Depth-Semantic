@@ -1,3 +1,4 @@
+"""Sobel filter for edge detection"""
 import torch
 import torch.nn as nn
 import numpy as np

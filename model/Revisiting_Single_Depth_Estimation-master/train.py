@@ -44,6 +44,19 @@ parser.add_argument('--depth_loss_weight', default=10., type=float,
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def define_model(is_resnet, is_densenet, is_senet, num_segmentation_classes, pretrained = True):
+    """This function defines the model that is used for training and validation.
+
+    Args:
+        The following arguments are used to define the model. The first three are mutually exclusive.
+        is_resnet (bool): Defines if the model should be a resnet.
+        is_densenet (bool): Defines if the model should be a densenet.
+        is_senet (bool): Defines if the model should be a senet.
+        num_segmentation_classes (int): Defines the number of segmentation classes that are used for training.
+        pretrained (bool, optional): Defines if the model should be pretrained. Defaults to True.
+
+    Returns:
+        Pytorch model: Returns the defined model.
+    """    """"""
     if is_resnet:
         original_model = resnet.resnet50(num_segmentation_classes=num_segmentation_classes, pretrained=pretrained)
         Encoder = modules.E_resnet(original_model)
@@ -63,17 +76,18 @@ def define_model(is_resnet, is_densenet, is_senet, num_segmentation_classes, pre
     return model
 
 def main():
-    # print("GPU VRAM MAIN:",torch.cuda.mem_get_info())
+    """A function that is called when the script is executed. It defines the model, the optimizer and the data loaders.
+    It also calls the training and validation functions.
+    """
+
     global args
     args = parser.parse_args()
-    #set_method.mymethod(args.method) #initialize the desired method
-    print("What is the value of my_method after initializing: ", my_method)
+    print("Using the defined method: ", my_method)
     data_path = os.path.abspath(os.path.dirname("./../../data/"))
     csv_file_reader = open(data_path+"/segmentation_classes/" + args.selected_segmentation_classes)
     num_segmentation_classes = sum(1 for line in csv_file_reader) - 1
 
     model = define_model(is_resnet=True, is_densenet=False, is_senet=False, num_segmentation_classes=num_segmentation_classes, pretrained=True)
-    # print("GPU VRAM model defined:",torch.cuda.mem_get_info())
     now = datetime.datetime.now()
     filename_date = f".{str(now.strftime('%m-%d-%Y-%H-%M-%S'))}"
 
@@ -168,8 +182,16 @@ def main():
 
 
 def train(train_loader, model, optimizer, epoch, depth_loss_weight):
-    # if(torch.cuda.is_available()):
-    #     print("GPU VRAM 1:",torch.cuda.mem_get_info())
+    """This function trains the model.
+
+    Args:
+        train_loader (Dataloader): the training data loader
+        model (Pytorch model): the model to train
+        optimizer (Pytorch optimizer): The optimizer to use for training
+        epoch (int): The current epoch 
+        depth_loss_weight (float): The weight of the depth loss. 
+    """    """"""
+
     print(f"===== EPOCH:{epoch} ====== ")
     criterion = nn.L1Loss()
     batch_time = AverageMeter()
@@ -179,7 +201,6 @@ def train(train_loader, model, optimizer, epoch, depth_loss_weight):
 
     cross_entropy_loss = nn.CrossEntropyLoss()
     cos = nn.CosineSimilarity(dim=1, eps=0)
-    # print("GPU VRAM before Sobel:",torch.cuda.mem_get_info())
 
     if(torch.cuda.is_available()):
         get_gradient = sobel.Sobel(1).cuda()
@@ -191,8 +212,7 @@ def train(train_loader, model, optimizer, epoch, depth_loss_weight):
 
     end = time.time()
     for i, sample_batched in enumerate(train_loader):
-        # print("DOING ITERATION:",i)
-        # print("GPU VRAM:",torch.cuda.mem_get_info())
+
 
         if(my_method == Method.JOINTLEARNING):
             image, depth, segmentation_mask = sample_batched['image'], sample_batched['depth'], sample_batched["segmentation"]
@@ -206,7 +226,7 @@ def train(train_loader, model, optimizer, epoch, depth_loss_weight):
 
         depth = depth.to(device)
         image = image.to(device)
-
+        # Handling and masking nan values in the image/depth
         image = torch.autograd.Variable(image, requires_grad=False)
         mask_out_nans = depth.isnan()
         num_nans = (~mask_out_nans).sum()
@@ -218,7 +238,7 @@ def train(train_loader, model, optimizer, epoch, depth_loss_weight):
 
         ones = torch.autograd.Variable(ones, requires_grad=False)
         optimizer.zero_grad()
-        # print("GPU VRAM before model call:",torch.cuda.mem_get_info())
+
         if(my_method == Method.JOINTLEARNING):
             output_depth, output_segmentation = model(image)
         else:
@@ -277,6 +297,15 @@ def train(train_loader, model, optimizer, epoch, depth_loss_weight):
             print("=====NAN VALUE IN LOSS !!!!! =====================")
 
 def validation(batch,model):
+    """This function is used to validate the model
+
+    Args:
+        batch (DataLoader): The validation data loader
+        model (Pytorch Model): The model to be validated.
+
+    Returns:
+        dict: A dictionary containing the validation metrics
+    """    """"""
     cos = nn.CosineSimilarity(dim=1, eps=0)
     cross_entropy_loss = nn.CrossEntropyLoss()
     model.eval()
@@ -353,6 +382,12 @@ def validation(batch,model):
             return {"output_depth": output_depth, "loss_depth": loss_depth.item(), "loss_dx": loss_dx.item(),
                     "loss_dy": loss_dy.item(), "loss_normal": loss_normal.item(), "loss": loss.item()}
 def save_results(results:dict,filename:str=""):
+    """This function saves the results of the training in a csv file.
+
+    Args:
+        results (dict): The results of the training or validation to be saved.
+        filename (str, optional): filename to be saved to. Defaults to "".
+    """    """"""
     
     # We want for training to save all epochs and outputs. 
     path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] +"../outputs/results/"
@@ -366,6 +401,12 @@ def save_results(results:dict,filename:str=""):
 
 
 def adjust_learning_rate(optimizer, epoch):
+    """This function adjusts the learning rate of the optimizer based on the epoch.
+
+    Args:
+        optimizer (Pytorch optimizer): The optimizer to be adjusted.
+        epoch (int): The current epoch.
+    """
     lr = args.lr * (0.1 ** (epoch // 5))
 
     for param_group in optimizer.param_groups:
@@ -373,6 +414,7 @@ def adjust_learning_rate(optimizer, epoch):
 
 
 class AverageMeter(object):
+    """Computes and stores the average and current value"""
     def __init__(self):
         self.reset()
 
@@ -390,6 +432,7 @@ class AverageMeter(object):
 
 
 def save_checkpoint(state, filename='checkpointapple.pth.tar'):
+    """This function saves the checkpoint of the training."""
     # now = datetime.datetime.now()
     # filename = f"./checkpointapple-{str(now.strftime('%m-%d-%Y-%H-%M-%S'))}.pth.tar"
     torch.save(state, filename)

@@ -470,6 +470,7 @@ URLS = [
 
 
 def get_scenes(list):
+    """Get the list of scenes and frames from the list of files"""
     scenes_list=[]
     frames_list = []
 
@@ -484,6 +485,7 @@ def get_scenes(list):
 
 
 class WebFile:
+    """A file-like object that reads from a URL, allowing seeking without downloading the whole file."""
     def __init__(self, url, session):
         with session.head(url) as response:
             size = int(response.headers["content-length"])
@@ -530,7 +532,15 @@ class WebFile:
         return data
 
 def download_files_me(url_list,max_file_size_GB,download_path="downloads/", max_frames=-1):
-    # Maybe todo, return a list of the files path/names, or a csv, for easier loading afterwards?
+    """Download the files from the list of urls and save them in the download_path folder.
+
+    Args:
+        url_list (list): List of urls to download
+        max_file_size_GB (int): Maximum file size in GB
+        download_path (str, optional): Path to save the files. Defaults to "downloads/".
+        max_frames (int, optional): Maximum number of frames to download. Defaults to -1.
+
+    """
     
     #create csv files
     train_data = [];
@@ -611,6 +621,11 @@ def download_files_me(url_list,max_file_size_GB,download_path="downloads/", max_
 
 
 def test_train_split(csv_filename):
+    """Split the csv file into train and test data
+
+    Args:
+        csv_filename (str): Name of the csv file
+    """    
     csv_filename = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] + csv_filename
     dataframe = pd.read_csv(csv_filename)
     train, test = train_test_split(dataframe, test_size=None, train_size=None, random_state=8, shuffle=True,
@@ -631,6 +646,8 @@ parser.add_argument('--urls', default=1, type=int,
 parser.add_argument("--download", default=False, type=bool, help="set to True if one wants to redownload data")
 
 def main():
+    """Main function to download the data and split it into train and test data and save it as csv files in the download folder.
+    """    
     global args
     args = parser.parse_args()
     download_path = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']  # local: downloads/, euler: /cluster/project/infk/courses/252-0579-00L/group37/downloads/
