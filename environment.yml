@@ -1,0 +1,14 @@
+name: 3dVisionProject
+dependencies:
+  - python=3.9.0
+  - pip
+  - pip:
+    - Pillow
+    - h5py==3.8.0
+    - torch==2.0.0
+    - torchvision==0.15.1
+    - numpy
+    - pandas
+    - scipy
+    - scikit-learn
+    - matplotlib
