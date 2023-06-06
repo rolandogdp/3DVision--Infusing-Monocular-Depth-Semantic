@@ -1,3 +1,6 @@
+"""
+This file contains the testing code of our model. ()
+"""
 import argparse
 import torch
 import torch.nn as nn
@@ -15,6 +18,7 @@ import loaddata
 import util
 import numpy as np
 import sobel
+from torch.utils.data import DataLoader
 
 import csv
 
@@ -38,6 +42,7 @@ parser.add_argument('--pretrained_model', default="./pretrained_model/model_sene
                     help='tar file name of pretrained model')
 
 def main():
+
     global args
     args = parser.parse_args()
 
@@ -59,7 +64,15 @@ def main():
     test_loader = loaddata.getTestingData(batch_size, "test_data.csv", args.selected_segmentation_classes)
     test(test_loader, model, 1.5)
 
-def test(test_loader, model, thre):
+def test(test_loader: DataLoader, model, thre: float):
+    """This function tests the model on the test set and prints the results.
+
+    Args:
+        test_loader (DataLoader): The test data loader.
+        model (Pytorch Model):   The model to be tested.
+        thre (float): The threshold for the edge map.
+    """    """"""
+    
     model.eval()
 
     totalNumber = len(test_loader)
@@ -159,6 +172,15 @@ def test(test_loader, model, thre):
 
 
 def test_sample_joint(test_loader, model, thre): 
+    """This function tests the model joint training model on the test set and prints the results.
+
+    Args:
+        test_loader (DataLoader): The test data loader.
+        model (Pytorch Model):   The model to be tested. Must be a joint training model.
+        thre (float): The threshold for the edge map.
+    """
+     
+     
     model.eval()
     totalNumber = len(test_loader)
     tresholds = [0.25, 0.5, 1.0, 1.25]
@@ -207,10 +229,11 @@ def test_sample_joint(test_loader, model, thre):
             edge1_valid = (depth_edge > thre)
             edge2_valid = (output_edge > thre)
 
-            nvalid = np.sum(torch.eq(edge1_valid, edge2_valid).float().data.cpu().numpy())
+            nvalid = np.sum(torch.ne(edge1_valid, edge2_valid).float().data.cpu().numpy())
             A = nvalid / num_non_nans#(depth.size(2)*depth.size(3)) #how many pixel are the same in edge map in percentage
 
-            nvalid2 = np.sum(((edge1_valid + edge2_valid) ==2).float().data.cpu().numpy()) #number of true positive
+            nvalid2 = np.sum(torch.logical_and(edge1_valid, edge2_valid).float().data.cpu().numpy()) #number of true positive
+
             P = nvalid2/(np.sum(edge2_valid.data.cpu().numpy())) #precision
             R = nvalid2/(np.sum(edge1_valid.data.cpu().numpy())) #recall
 
@@ -262,6 +285,15 @@ def test_sample_joint(test_loader, model, thre):
     return depth_results,sgmentation_results  
 
 def edge_detection(depth,channel_inputs=1):
+    """This function is used to detect the edge of the depth map.
+
+    Args:
+        depth (Tensor): The depth map.
+        channel_inputs (int, optional): Number of channels in the depth . Defaults to 1.
+
+    Returns:
+        tensor: The tensor containing the edge map.
+    """    """"""
     get_edge = sobel.Sobel(channel_inputs).to(device)
 
     edge_xy = get_edge(depth)

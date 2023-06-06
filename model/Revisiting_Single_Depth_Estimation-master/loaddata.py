@@ -28,10 +28,12 @@ import h5py
 import set_method
 
 def remap_data(np_array,wanted_max=255):
+    """This function remaps the data to a new range."""
     return (np_array/np_array.max(axis=(0,1))*wanted_max).astype(np.uint8)
 
 class depthDataset(Dataset):
-    """Face Landmarks dataset."""
+    """ This class is used to load the data from the csv file and to apply the transformations to the data.
+        It has been heavily adapted to the needs of this project."""
 
     def __init__(self, csv_file, segmentation_classes_csv=None, transform_rgb_image=None, transform_depth_image=None, transform_segmentation_mask=None):
         self.frame = pd.read_csv(csv_file)
@@ -123,6 +125,7 @@ class depthDataset(Dataset):
         return len(self.frame)
 
 def getTrainingData(batch_size=64, csv_filename="image_files.csv", segmentation_classes_csv_filename="all_classes.csv"):
+    """ Returns the training data with the correct classes for the given method"""
     
     print("My method in getTrainingData is: ", my_method)
     filename = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']  + csv_filename
@@ -164,6 +167,7 @@ def getTrainingData(batch_size=64, csv_filename="image_files.csv", segmentation_
     return dataloader_training
 
 def getTestingData(batch_size=64, csv_filename="images_files.csv", segmentation_classes_csv_filename="all_classes.csv"):
+    """ Returns the testing data with the correct classes for the given method"""
 
     filename = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH'] + csv_filename
 
@@ -201,6 +205,7 @@ def getTestingData(batch_size=64, csv_filename="images_files.csv", segmentation_
     return dataloader_testing
 
 def getValidationData(batch_size=64, csv_filename="image_files.csv", segmentation_classes_csv_filename="all_classes.csv"):
+    """ Returns the validation data with the correct classes for the given method """
     filename = os.environ['THREED_VISION_ABSOLUTE_DOWNLOAD_PATH']  + csv_filename
 
     mean,std = [0.53277088, 0.49348648, 0.45927282],[0.238986 ,  0.23546355 ,0.24486044]

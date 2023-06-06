@@ -10,9 +10,17 @@ if module_path not in sys.path:
     sys.path.append(module_path)
 
 from nyu_transform import _is_pil_image, _is_numpy_image
-#Arg: pass depth image as numpy array
-#return: returns depth values as numpy array
+
+
 def convert_distance_to_depth(np_depth_array):
+    """ This function converts the distance values to depth values (pixel range)
+
+    Args:
+        np_depth_array (numpy array):  depth image
+
+    Returns:
+         numpy array:  depth values
+    """    """"""
     intHeight, intWidth = np_depth_array.shape
     fltFocal = 886.81
     npyImageplaneX = np.linspace((-0.5 * intWidth) + 0.5, (0.5 * intWidth) - 0.5, intWidth).reshape(1, intWidth).repeat(intHeight, 0).astype(np.float32)[:, :, None]
@@ -24,6 +32,7 @@ def convert_distance_to_depth(np_depth_array):
 
 
 class ConvertSemanticLabelsToRGB(object):
+    """Converts semantic labels to RGB images."""
 
     def __init__(self):
         path = os.path.abspath(os.path.dirname(__file__))
@@ -55,6 +64,7 @@ class ConvertSemanticLabelsToRGB(object):
         return rgb_image
 
 class ConvertProbabilitiesToLabels(object):
+    """Converts semantic labels probabilities to semantic image."""
 
     def __init__(self, segmentation_classes_csv="all_classes.csv"):
         path = os.path.abspath(os.path.dirname(__file__))

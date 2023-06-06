@@ -36,6 +36,20 @@ else:
         
 
 def define_model(is_resnet, is_densenet, is_senet, num_segmentation_classes, pretrained = False):
+    """This function defines the model that is used for training and validation.
+
+    Args:
+        The following arguments are used to define the model. The first three are mutually exclusive.
+        is_resnet (bool): Defines if the model should be a resnet.
+        is_densenet (bool): Defines if the model should be a densenet.
+        is_senet (bool): Defines if the model should be a senet.
+        num_segmentation_classes (int): Defines the number of segmentation classes that are used for training.
+        pretrained (bool, optional): Defines if the model should be pretrained. Defaults to True.
+
+    Returns:
+        Pytorch model: Returns the defined model.
+    """    """"""
+    
     if is_resnet:
         original_model = resnet.resnet50(num_segmentation_classes=num_segmentation_classes, pretrained=pretrained)
         Encoder = modules.E_resnet(original_model)
@@ -55,7 +69,8 @@ def define_model(is_resnet, is_densenet, is_senet, num_segmentation_classes, pre
     return model
    
 
-def test_sample(model, test_loader): 
+def test_sample(model, test_loader):
+    """This function is used to test a batch of images and return the results.""" 
     model.eval()
     depth_results = []
     if(torch.cuda.is_available()):
@@ -83,7 +98,7 @@ def test_sample(model, test_loader):
 
 
 def display_tensor_data_many(tensors_dict:dict, remap, titles, colorbar, figsize=(15, 15), fontsize=12, plot_name=None):
-    
+    """ This function is used to plot a dictionary of tensors. The dictionary keys are used as titles for the plots."""
     n_columns = len(titles)
     n_rows = len(tensors_dict[list(tensors_dict.keys())[0]])
     # print(n_rows)
@@ -110,7 +125,8 @@ def display_tensor_data_many(tensors_dict:dict, remap, titles, colorbar, figsize
 
 
 def main():
-    
+    """The demo function is used to test the model on a group of images. The images are loaded from the validation dataset.
+      The model is loaded from the checkpoint folder. The results are displayed in a plot."""
     validation_image_path_csv = "Final_Test_Data.csv"
     
     # selected_segmentation_classes = "only_relevant_classes.csv"
@@ -148,6 +164,9 @@ def main():
 
 
 def test( model, test_loader):
+    """  This function is used to test the model on a group of images. The images are loaded from the validation dataset.
+      The model is loaded from the checkpoint folder. The results are displayed in a plot.
+    """
     
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")

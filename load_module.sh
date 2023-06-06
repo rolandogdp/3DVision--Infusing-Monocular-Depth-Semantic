@@ -1,3 +1,5 @@
+# Description: Load modules for the 3D Vision course at ETHZ for the cluster
+# 
 #run with source "source load_module.sh"
 #module load new
 

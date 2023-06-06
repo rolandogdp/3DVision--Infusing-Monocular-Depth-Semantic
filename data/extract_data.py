@@ -1,3 +1,4 @@
+"""Script to extract data from the csv file for the final presentation data."""
 import pandas as pd 
 
 import numpy as np 

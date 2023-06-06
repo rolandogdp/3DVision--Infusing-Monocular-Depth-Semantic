@@ -1,4 +1,4 @@
-
+"""  Transformations used for the inputs. Adapted from original code to match our needs and data formats. """
 import torch
 import numpy as np
 from PIL import Image, ImageOps
