@@ -33,8 +33,10 @@ To use this code, you will first need to install all the requirements from the r
 
 #### For a minimal demo run
 
-* You will have to download the pre-trained checkpoints of the model. You will need to place them in ./data/outputs/checkpoints/
-* You will need to download the Final_Test_Data.csv and the Final_Test_Data and put them in the ./data/downloads/ folder.
+* You will have to download the pre-trained checkpoints of the model. You will need to place them in ./data/outputs/checkpoints/ . You can find the checkpoints folder on the following url:
+ 
+        https://drive.google.com/drive/folders/14B4D15hR3Y3VFyjJJKp2rEZiQUhhibqO?usp=sharing
+* You will need to download the Final_Test_Data.csv and the Final_Test_Data and put them in the ./data/downloads/ folder if not already there.
 
 
 * You will need to set an environment variable pointing to the downloads folder. This path should be absolute. If you are on a Unix based machine, you may go to the downloads folder from a Terminal and then execute:
